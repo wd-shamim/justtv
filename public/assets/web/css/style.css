@@ -1,31 +1,12 @@
 :root{
-    --primary-color: #ff9900;
-    --secondary-color: #000000;
-    --background-color: #1a1a1a;
-    --text-color: #ffffff;
-    --border-color: #333333;
-    --hover-color: #ff9900;
-    --active-color: #ffc107;
-    --font-family: 'Arial', sans-serif;
-    --font-size: 16px;
-    --font-size-sm: 14px;
-    --font-size-xs: 12px;
-    --border-radius: 4px;
-    --transition: all 0.3s ease;
-    --box-shadow: 0 2px 4px rgba(0, 0, 0, 0.2);
-    --box-shadow-hover: 0 4px 8px rgba(0, 0, 0, 0.3);
-    --box-shadow-active: 0 2px 4px rgba(0, 0, 0, 0.5);
-    --padding: 1rem;
-    --padding-sm: 0.5rem;
-    --margin: 1rem;
-    --margin-sm: 0.5rem;
-    --height: 50px;
-    --height-sm: 40px;
-    --width: 100%;
-    --width-sm: 80%;
-    --max-width: 1200px;
-    --max-width-sm: 100%;
+    --secondary-color: #222;
+    --secondary-rgb: linear-gradient(135deg, rgba(35, 35, 37, 0.9), rgba(42, 46, 51, 0.9));
     --live-height: 596px;
+}
+
+.text-muted {
+    --bs-text-opacity: 1;
+    color: rgb(90 94 99 / 75%) !important;
 }
 /* Global Styles */
 .live-body {
@@ -132,7 +113,7 @@
     top: 70px;
     left: 1rem;
     z-index: 1001;
-    background-color: #222;
+    background-color: var(--secondary-color);
     border: none;
     color: #ff9900;
     padding: 0.75rem;
@@ -213,7 +194,7 @@
 
 /* Right Column: Video Player */
 .live-content-area {
-    background-color: #222;
+    background-color: var(--secondary-color);
     border-radius: 8px;
     padding: 1rem;
     height: var(--live-height);
@@ -263,6 +244,15 @@
 .live-main-content {
     flex: 1;
     padding-bottom: 60px;
+}
+
+.placeholder-container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    width: 100%;
+    height: 100%; 
+    text-align: center;
 }
 
 /* Footer */
@@ -491,12 +481,12 @@
 }
 
 .live-channel-nav-arrow-btn.left-arrow {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(124, 58, 237, 0.9));
+    background: var(--secondary-rgb);
     left: 10px;
 }
 
 .live-channel-nav-arrow-btn.right-arrow {
-    background: linear-gradient(135deg, rgba(139, 92, 246, 0.9), rgba(124, 58, 237, 0.9));
+    background: var(--secondary-rgb);
     right: 10px;
 }
 
@@ -671,6 +661,49 @@
     border-radius: 8px;
     color: #fff;
     max-height: var(--live-height);
+    scrollbar-width: none; /* Firefox: hide by default */
+}
+
+/* WebKit Scrollbar */
+.live-channel-activities::-webkit-scrollbar {
+    width: 8px;
+    background: transparent;
+}
+
+.live-channel-activities::-webkit-scrollbar-thumb {
+    background: transparent;
+    border-radius: 4px;
+}
+
+.live-channel-activities:hover::-webkit-scrollbar-thumb {
+    background: #555;
+}
+
+/* Ensure arrows are removed in WebKit */
+.live-channel-activities::-webkit-scrollbar-button {
+    display: none;
+    height: 0;
+    width: 0;
+}
+
+/* Explicitly target all possible scrollbar buttons */
+.live-channel-activities::-webkit-scrollbar-button:vertical:start:decrement,
+.live-channel-activities::-webkit-scrollbar-button:vertical:end:increment,
+.live-channel-activities::-webkit-scrollbar-button:horizontal:start:decrement,
+.live-channel-activities::-webkit-scrollbar-button:horizontal:end:increment {
+    display: none;
+    height: 0;
+    width: 0;
+}
+
+.live-channel-activities::-webkit-scrollbar-track {
+    background: transparent;
+}
+
+/* Firefox: Show scrollbar on hover */
+.live-channel-activities:hover {
+    scrollbar-width: thin;
+    scrollbar-color: #555 transparent;
 }
 
 .channel-header {
@@ -717,11 +750,10 @@
 }
 
 .activities-list {
-    overflow: auto;
     display: flex;
     flex-direction: column;
     gap: 10px;
-    margin-top: 15px;
+    margin-top: 10px;
 }
 
 .activity-item {

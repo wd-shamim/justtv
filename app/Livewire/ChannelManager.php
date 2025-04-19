@@ -30,75 +30,75 @@ class ChannelManager extends Component
             'name' => 'MLB Network',
             'logo' => 'https://upload.wikimedia.org/wikipedia/en/thumb/a/ac/MLBNetworkLogo.svg/250px-MLBNetworkLogo.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://ddy6new.newkso.ru/ddy6/premium356/mono.m3u8'
+            'stream_link' => 'https://v17.thetvapp.to/hls/BBCAmericaEast/tracks-v2a1/mono.m3u8?token=se99ePi9td2alsJeFExN4w&expires=1745050792&user_id=YURsSnBvcVRjRlNLdEpLcHNSMXcwMkNZYzAwNmppSGlXUnVOZVJPVQ=='
         ],
         [
             'id' => 3,
-            'name' => 'ESPN',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/2/24/ESPN_Logo.svg/250px-ESPN_Logo.svg.png',
+            'name' => 'Estrella News',
+            'logo' => 'https://images.fubo.tv/station_logos/Estrella_News_c.png',
             'is_live' => true,
-            'stream_link' => 'https://example.com/hls/ESPN/index.m3u8'
+            'stream_link' => 'https://estrella-news-oando.amagi.tv/playlistR720P.m3u8'
         ],
         [
             'id' => 4,
             'name' => 'CNN',
             'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/250px-CNN.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://example.com/hls/CNN/index.m3u8'
+            'stream_link' => 'https://live3vox.antenaplay.ro/a3free/a3free_250.m3u8'
         ],
         [
             'id' => 5,
             'name' => 'HBO',
             'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/d/de/HBO_logo.svg/250px-HBO_logo.svg.png',
             'is_live' => false,
-            'stream_link' => 'https://example.com/hls/HBO/index.m3u8'
+            'stream_link' => 'https://bloomberg-quicktake-1-be.samsung.wurl.tv/d0e0ff8ea1fdc127aca3ed1ba20f19fb.m3u8'
         ],
         [
             'id' => 6,
             'name' => 'National Geographic',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/6a/National_Geographic_logo.svg/250px-National_Geographic_logo.svg.png',
+            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/f/fc/Natgeologo.svg/250px-Natgeologo.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://example.com/hls/NatGeo/index.m3u8'
+            'stream_link' => 'https://d1ewctnvcwvvvu.cloudfront.net/720p-cc/index.m3u8'
         ],
         [
             'id' => 7,
-            'name' => 'Discovery Channel',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0b/Discovery_Channel_logo.svg/250px-Discovery_Channel_logo.svg.png',
+            'name' => 'MSNBC',
+            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/5/50/MSNBC_2015-2021_logo.svg/2560px-MSNBC_2015-2021_logo.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://example.com/hls/Discovery/index.m3u8'
+            'stream_link' => 'https://v1.thetvapp.to/hls/MSNBC/tracks-v2a1/mono.m3u8'
         ],
         [
             'id' => 8,
             'name' => 'Nickelodeon',
             'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/a/a1/Nickelodeon_logo.svg/250px-Nickelodeon_logo.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://example.com/hls/Nickelodeon/index.m3u8'
+            'stream_link' => 'https://v1.thetvapp.to/hls/FYIEast/tracks-v2a1/mono.m3u8'
         ],
         [
             'id' => 9,
             'name' => 'BBC News',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/62/BBC_News_2019.svg/250px-BBC_News_2019.svg.png',
+            'logo' => 'https://seeklogo.com/images/T/tv-logo-F7231DA292-seeklogo.com.png',
             'is_live' => true,
             'stream_link' => 'https://example.com/hls/BBCNews/index.m3u8'
         ],
         [
             'id' => 10,
             'name' => 'MTV',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/0/0f/MTV_Logo.svg/250px-MTV_Logo.svg.png',
+            'logo' => 'https://seeklogo.com/images/T/tv-logo-F7231DA292-seeklogo.com.png',
             'is_live' => true,
             'stream_link' => 'https://example.com/hls/MTV/index.m3u8'
         ],
         [
             'id' => 11,
             'name' => 'TNT',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/3/3e/TNT_Logo_2016.svg/250px-TNT_Logo_2016.svg.png',
+            'logo' => 'https://seeklogo.com/images/T/tv-logo-F7231DA292-seeklogo.com.png',
             'is_live' => true,
             'stream_link' => 'https://example.com/hls/TNT/index.m3u8'
         ],
         [
             'id' => 12,
             'name' => 'Food Network',
-            'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/6/66/Food_Network_logo.svg/250px-Food_Network_logo.svg.png',
+            'logo' => 'https://seeklogo.com/images/T/tv-logo-F7231DA292-seeklogo.com.png',
             'is_live' => true,
             'stream_link' => 'https://example.com/hls/FoodNetwork/index.m3u8'
         ]

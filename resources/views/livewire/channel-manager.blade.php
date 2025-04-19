@@ -45,7 +45,7 @@
                                 <div class="activities-list">
                                     @foreach($channels as $channel)
                                         @if($channel['id'] !== 'all')
-                                            <div class="activity-item">
+                                            <div class="activity-item {{ $selectedChannel === $channel['id'] ? 'active' : '' }}" wire:click="selectChannel('{{ $channel['id'] }}')">
                                                 <div class="channel-info mb-2">
                                                     <img src="{{ $channel['logo'] }}" alt="{{ $channel['name'] }}" class="channel-logo-sm">
                                                     <h4 class="channel-title-sm">{{ $channel['name'] }}</h4>
@@ -134,7 +134,7 @@
                             <div class="placeholder-container d-flex align-items-center justify-content-center">
                                 <div class="text-center">
                                     <i class="fas fa-tv fa-5x text-muted mb-3"></i>
-                                    <h3>Select a channel to start streaming</h3>
+                                    <h3 class="text-muted">Select a channel to start streaming</h3>
                                     <p class="text-muted">Choose from the available channels on the left</p>
                                 </div>
                             </div>
