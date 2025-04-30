@@ -1,7 +1,7 @@
 <header class="live-header">
     <nav class="navbar navbar-expand-lg navbar-dark live-navbar">
         <div class="container">
-            <a class="navbar-brand live-brand" href="#">
+            <a class="navbar-brand live-brand" href="/">
                 <img src="https://zuzz.tv/assets/logo.png" alt="ZUZZ TV" class="live-logo">
             </a>
             <div class="d-flex align-items-center">

@@ -10,6 +10,22 @@
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
     <link href="https://vjs.zencdn.net/7.20.3/video-js.css" rel="stylesheet">
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
+    <script>
+        player = new Clappr.Player({
+            source: "https://nfsnew.newkso.ru/nfs/premium652/mono.m3u8",
+            parentId: "#clappr-container",
+            autoPlay: true,
+            mute: false,
+            height: "100%",
+            width: "100%",
+            headers: {
+                'Referer': 'https://your-live-domain.com', // Replace with live server domain
+                'User-Agent': navigator.userAgent,
+                'Authorization': 'Bearer your-token' // If a token is required
+            },
+            disableErrorScreen: false // Enable error screen for debugging
+        });
+    </script>
     @stack('styles')
     @livewireStyles
 </head>

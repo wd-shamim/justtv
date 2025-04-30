@@ -52,9 +52,7 @@
                                     @if($channel['id'] !== 'all')
                                         <div class="activity-item">
                                             <div class="channel-info mb-2">
-                                                <img src="{{ $channel['logo'] }}"
-                                                     alt="{{ $channel['name'] }}"
-                                                     class="channel-logo-sm">
+                                                <img src="{{ $channel['logo'] }}" alt="{{ $channel['name'] }}" class="channel-logo-sm">
                                                 <h4 class="channel-title-sm">{{ $channel['name'] }}</h4>
                                                 @if($channel['is_live'])
                                                     <span class="badge bg-danger ms-2">LIVE</span>
@@ -96,10 +94,8 @@
                     <div class="live-content-area">
                         @if($selectedChannel !== 'all')
                             <div class="live-video-container">
-                                <video id="channelPlayer" class="video-js vjs-fluid vjs-default-skin w-100" 
-                                       controls preload="auto" playsinline>
-                                    <source src="{{ $currentChannel['stream_link'] }}" 
-                                            type="application/x-mpegURL">
+                                <video id="channelPlayer" class="video-js vjs-fluid vjs-default-skin w-100"  controls preload="auto" playsinline>
+                                    <source src="{{ $currentChannel['stream_link'] }}"  type="application/x-mpegURL">
                                 </video>
                                 <!-- Fallback overlay for when autoplay is blocked -->
                                 <div id="playOverlay" class="play-overlay" style="display: none;">
