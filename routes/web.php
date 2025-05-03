@@ -12,13 +12,15 @@ Route::get('/', function () {
 Route::controller(TvController::class)->group(function () {
     Route::get('/tv', 'index')->name('tv.index');
     Route::get('/tv/{channel}', 'show')->name('tv.show');
-    
+
     Route::get('/allchannel', 'allchannel')->name('allchannel');
 });
 
 Route::controller(DaddyController::class)->group(function () {
     Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive')->where('channelId', '[0-9]+');
+    // Route::get('/stream/proxy/{channelId}', 'proxyStream')->name('proxy.stream');
 });
+
 
 // iFrame Routes
 Route::controller(IframeController::class)->group(function () {
