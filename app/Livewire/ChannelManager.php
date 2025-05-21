@@ -37,7 +37,7 @@ class ChannelManager extends Component
             'name' => 'Estrella News',
             'logo' => 'https://images.fubo.tv/station_logos/Estrella_News_c.png',
             'is_live' => true,
-            'stream_link' => 'https://estrella-news-oando.amagi.tv/playlistR720P.m3u8'
+            'stream_link' => 'https://ft.fbcdntv247.cfd/memfs/04f7d00e-0f79-4956-8296-985ac70a84be_output_0.m3u8'
         ],
         [
             'id' => 4,

@@ -4,6 +4,7 @@ use Illuminate\Support\Facades\Route;
 use App\Http\Controllers\Web\TvController;
 use App\Http\Controllers\Web\IframeController;
 use App\Http\Controllers\Web\DaddyController;
+use App\Http\Controllers\Web\StreamProxyController;
 
 Route::get('/', function () {
     return view('welcome');
@@ -16,14 +17,8 @@ Route::controller(TvController::class)->group(function () {
     Route::get('/allchannel', 'allchannel')->name('allchannel');
 });
 
-Route::controller(DaddyController::class)->group(function () {
-    Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive')->where('channelId', '[0-9]+');
-    // Route::get('/stream/proxy/{channelId}', 'proxyStream')->name('proxy.stream');
-});
-
-
-// iFrame Routes
-Route::controller(IframeController::class)->group(function () {
-    Route::get('/embed/{channelId}', 'embed')->name('embed')->where('channelId', '[0-9]+');
-    Route::get('/player/{channelId}', 'player')->name('player')->where('channelId', '[0-9]+');
+Route::middleware(['web'])->group(function () {
+    Route::controller(DaddyController::class)->group(function () {
+        Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
+    });
 });

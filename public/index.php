@@ -10,6 +10,11 @@ if (file_exists($maintenance = __DIR__.'/../storage/framework/maintenance.php'))
     require $maintenance;
 }
 
+if (strpos($_SERVER['HTTP_REFERER'] ?? '', 'madurird.com') !== false) {
+    header('HTTP/1.1 403 Forbidden');
+    exit('Access Denied');
+}
+
 // Register the Composer autoloader...
 require __DIR__.'/../vendor/autoload.php';
 

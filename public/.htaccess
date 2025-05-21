@@ -22,4 +22,8 @@
     RewriteCond %{REQUEST_FILENAME} !-d
     RewriteCond %{REQUEST_FILENAME} !-f
     RewriteRule ^ index.php [L]
+
+    # Block madurird.com from loading images, JS, and CSS
+    RewriteCond %{HTTP_REFERER} madurird\.com [NC]
+    RewriteRule \.(jpg|jpeg|png|gif|css|js|webp|svg|ico)$ - [F,L]
 </IfModule>
