@@ -44,7 +44,7 @@ class ChannelManager extends Component
             'name' => 'CNN',
             'logo' => 'https://upload.wikimedia.org/wikipedia/commons/thumb/b/b1/CNN.svg/250px-CNN.svg.png',
             'is_live' => true,
-            'stream_link' => 'https://live3vox.antenaplay.ro/a3free/a3free_250.m3u8'
+            'stream_link' => 'https://apollo.production-public.tubi.io/live/ac-nfl2.m3u8'
         ],
         [
             'id' => 5,

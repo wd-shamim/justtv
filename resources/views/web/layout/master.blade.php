@@ -15,7 +15,7 @@
     <script src="https://vjs.zencdn.net/7.20.3/video.min.js"></script>
     
     @stack('styles')
-     @include('web.layout.inc.ads')
+    @include('web.layout.inc.ads')
     @livewireStyles
 </head>
 
@@ -37,8 +37,8 @@
     <div class="live-overlay"></div>
 
     @include('web.layout.inc.footer')
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="{{ asset('assets/web/js/main.js') }}"></script>
+        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+        <script src="{{ asset('assets/web/js/main.js') }}"></script>
     @stack('scripts')
     @livewireScripts
 </body>
