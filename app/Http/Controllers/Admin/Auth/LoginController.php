@@ -14,14 +14,17 @@ class LoginController extends Controller
 
     public function login(Request $request)
     {
+        // Validate the request
         $credentials = $request->validate([
             'email' => ['required', 'email'],
             'password' => ['required'],
         ]);
 
+        // Attempt to authenticate using the 'admin' guard
         if (Auth::guard('admin')->attempt($credentials)) {
             $user = Auth::guard('admin')->user();
-            if ($user->hasAnyRole(['super_admin', 'manager', 'admin'])) {
+            // Check for roles with correct name (super-admin instead of super_admin)
+            if ($user->hasAnyRole(['super-admin', 'manager', 'admin'])) {
                 return redirect()->route('admin.dashboard');
             }
             Auth::guard('admin')->logout();

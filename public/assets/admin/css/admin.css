@@ -1,0 +1,208 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap');
+
+body {
+    font-family: 'Inter', sans-serif;
+    background: radial-gradient(circle at 10% 20%, rgba(139, 92, 246, 0.1) 0%, rgba(255, 255, 255, 0) 20%),
+        radial-gradient(circle at 90% 80%, rgba(244, 63, 94, 0.1) 0%, rgba(255, 255, 255, 0) 20%);
+    min-height: 100vh;
+    -webkit-tap-highlight-color: transparent;
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border: 1px solid rgba(255, 255, 255, 0.2);
+}
+
+.dark .glass-card {
+    background: rgba(15, 23, 42, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.dropdown-menu {
+    transition: all 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateY(10px);
+}
+
+.dropdown:hover .dropdown-menu {
+    opacity: 1;
+    visibility: visible;
+    transform: translateY(0);
+}
+
+.sub-dropdown {
+    transition: all 0.3s ease;
+    opacity: 0;
+    visibility: hidden;
+    transform: translateX(10px);
+}
+
+.dropdown-sub:hover .sub-dropdown {
+    opacity: 1;
+    visibility: visible;
+    transform: translateX(0);
+}
+
+.mobile-menu {
+    transform: translateX(-100%);
+    transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.mobile-menu.open {
+    transform: translateX(0);
+}
+
+.progress-ring {
+    transform: rotate(-90deg);
+}
+
+.progress-ring-circle {
+    stroke-dasharray: 283;
+    stroke-dashoffset: 283;
+    transition: stroke-dashoffset 0.7s ease;
+}
+
+.chart-grid line {
+    stroke: rgba(255, 255, 255, 0.1);
+}
+
+.dark .chart-grid line {
+    stroke: rgba(255, 255, 255, 0.05);
+}
+
+.status-badge {
+    animation: pulse-slow 2s infinite;
+}
+
+/* Modal animations */
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+
+    to {
+        opacity: 1;
+    }
+}
+
+@keyframes slideUp {
+    from {
+        transform: translateY(20px);
+        opacity: 0;
+    }
+
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.modal-overlay {
+    animation: fadeIn 0.3s ease-out;
+}
+
+.modal-content {
+    animation: slideUp 0.3s ease-out;
+}
+
+/* Mobile menu enhancements */
+.mobile-submenu {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.mobile-submenu.open {
+    max-height: 500px;
+}
+
+.mobile-submenu-child {
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.3s ease;
+}
+
+.mobile-submenu-child.open {
+    max-height: 500px;
+}
+
+/* Native-like mobile interactions */
+@media (max-width: 767px) {
+    body {
+        -webkit-overflow-scrolling: touch;
+    }
+
+    .mobile-menu {
+        width: 85%;
+        box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+    }
+
+    .mobile-overlay {
+        background: rgba(0, 0, 0, 0.5);
+        backdrop-filter: blur(5px);
+        -webkit-backdrop-filter: blur(5px);
+    }
+
+    /* Responsive search and filter */
+    .search-filter-container {
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .search-filter-container .relative {
+        width: 100%;
+    }
+
+    .search-filter-container button {
+        width: 100%;
+        justify-content: center;
+    }
+}
+
+/* Rotate animation for dropdown icons */
+.rotate-180 {
+    transform: rotate(180deg);
+}
+
+/* Active state for buttons */
+.active {
+    transform: scale(0.98);
+    opacity: 0.9;
+}
+
+/* Chart container */
+.chart-container {
+    position: relative;
+    height: 100%;
+    width: 100%;
+}
+
+/* Hide scrollbar by default */
+.table-hover-scroll::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+    background-color: transparent;
+}
+
+.table-hover-scroll::-webkit-scrollbar-thumb {
+    background-color: transparent;
+    border-radius: 4px;
+}
+
+/* Show scrollbar on hover */
+.table-hover-scroll:hover::-webkit-scrollbar-thumb {
+    background-color: rgba(100, 100, 100, 0.4); /* Adjust color for visibility */
+}
+
+/* Firefox support */
+.table-hover-scroll {
+    scrollbar-width: none; /* hide by default */
+}
+
+.table-hover-scroll:hover {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(100, 100, 100, 0.4) transparent;
+}
