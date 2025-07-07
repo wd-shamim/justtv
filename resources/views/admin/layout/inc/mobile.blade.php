@@ -2,7 +2,7 @@
 <div id="mobileOverlay" class="fixed inset-0 bg-black bg-opacity-50 z-40 hidden"></div>
 
 <!-- Mobile Sidebar -->
-<div id="mobileMenu" class="mobile-menu fixed inset-y-0 left-0 w-64 bg-gray-800 bg-opacity-90 backdrop-filter backdrop-blur-lg z-50 p-4 shadow-2xl overflow-y-auto">
+<div id="mobileMenu" class="mobile-menu fixed inset-y-0 left-0 w-80 bg-gray-800 bg-opacity-90 backdrop-filter backdrop-blur-lg z-50 p-4 shadow-2xl overflow-y-auto">
     <div class="flex items-center justify-between mb-8">
         <div class="flex items-center space-x-2">
             <div class="w-8 h-8 bg-purple-500 rounded-full flex items-center justify-center">

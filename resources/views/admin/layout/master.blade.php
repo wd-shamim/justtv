@@ -68,7 +68,7 @@
                 </div>
                 
                 <div class="mt-6 flex justify-end space-x-3">
-                    <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg">Cancel</button>
+                    <button class="px-4 py-2 bg-gray-200 dark:bg-gray-700 rounded-lg" id="closeModal">Cancel</button>
                     <button class="px-4 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-lg">Add Channel</button>
                 </div>
             </div>
