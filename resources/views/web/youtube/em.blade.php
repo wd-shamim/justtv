@@ -15,9 +15,6 @@
             user-select: none;
         }
 
-        /* ═══════════════════════════════════════════════════
-           ROOT — everything lives here, fullscreen targets this
-        ═══════════════════════════════════════════════════ */
         #root {
             position: absolute;
             inset: 0;
@@ -47,17 +44,34 @@
         }
 
         /* ═══════════════════════════════════════════════════
-           LAYER 2 — Pause / end suggestion blocker
-           Shows video thumbnail when not playing so YouTube's
-           suggestion grid, title bar bleed, and branding are
-           hidden. Fades to transparent the moment play starts.
+           HIDDEN DATA IFRAME
+           controls=1 so YouTube reliably sends infoDelivery
+           (currentTime + duration) every ~250ms.
+           Completely invisible — 1×1px, off-screen, muted, no
+           interaction. Only purpose: feed us accurate time data.
+        ═══════════════════════════════════════════════════ */
+        #yt-data {
+            position: fixed;
+            top: -9999px;
+            left: -9999px;
+            width: 1px;
+            height: 1px;
+            opacity: 0;
+            pointer-events: none;
+            border: none;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           LAYER 2 — Pause cover
+           Shows video thumbnail when not playing.
+           Hides YT suggestions/branding on pause & end.
         ═══════════════════════════════════════════════════ */
         #pause-cover {
             position: absolute;
             inset: 0;
             z-index: 2;
             pointer-events: none;
-            opacity: 1;  /* starts visible — hides initial YT branding */
+            opacity: 1;
             transition: opacity 0.25s ease;
             background: #000 center/cover no-repeat;
         }
@@ -68,9 +82,7 @@
         #root.state-ended     #pause-cover { opacity: 1; }
 
         /* ═══════════════════════════════════════════════════
-           LAYER 3 — Transparent shield
-           Sits above YouTube, below our UI.
-           Ensures no YouTube overlay can ever intercept a click.
+           LAYER 3 — Shield + UI
         ═══════════════════════════════════════════════════ */
         #shield {
             position: absolute;
@@ -79,25 +91,19 @@
             pointer-events: none;
         }
 
-        /* ═══════════════════════════════════════════════════
-           LAYER 4 — Our player UI
-        ═══════════════════════════════════════════════════ */
         #player {
             position: absolute;
             inset: 0;
             z-index: 4;
         }
 
-        /* ── Clickable area (whole player) ── */
         #click-area {
             position: absolute;
             inset: 0;
             cursor: pointer;
         }
 
-        /* ═══════════════════════════════════════════════════
-           BIG CENTRE BUTTON
-        ═══════════════════════════════════════════════════ */
+        /* ── Centre button ── */
         #centre-btn {
             position: absolute;
             top: 50%; left: 50%;
@@ -114,29 +120,15 @@
             transition: opacity 0.28s ease, transform 0.28s ease, background 0.18s;
             cursor: pointer;
         }
-        #centre-btn svg {
-            width: 30px; height: 30px;
-            fill: #fff;
-            transition: transform 0.15s;
-        }
+        #centre-btn svg { width:30px; height:30px; fill:#fff; transition:transform 0.15s; }
         #centre-btn:hover { background: rgba(0,0,0,0.82); }
         #centre-btn:hover svg { transform: scale(1.08); }
 
         #root.state-initial #centre-btn,
         #root.state-paused  #centre-btn,
-        #root.state-ended   #centre-btn {
-            opacity: 1;
-            pointer-events: auto;
-        }
-        #root.state-playing #centre-btn {
-            opacity: 0;
-            transform: translate(-50%, -50%) scale(0.88);
-            pointer-events: none;
-        }
-        #root.state-playing.centre-flash #centre-btn {
-            opacity: 1;
-            transform: translate(-50%, -50%) scale(1);
-        }
+        #root.state-ended   #centre-btn { opacity:1; pointer-events:auto; }
+        #root.state-playing #centre-btn { opacity:0; transform:translate(-50%,-50%) scale(0.88); pointer-events:none; }
+        #root.state-playing.centre-flash #centre-btn { opacity:1; transform:translate(-50%,-50%) scale(1); }
 
         @keyframes centrePulse {
             0%   { transform: translate(-50%,-50%) scale(1); }
@@ -144,13 +136,9 @@
             70%  { transform: translate(-50%,-50%) scale(0.95); }
             100% { transform: translate(-50%,-50%) scale(1); }
         }
-        #centre-btn.pulse {
-            animation: centrePulse 0.38s cubic-bezier(0.34,1.56,0.64,1);
-        }
+        #centre-btn.pulse { animation: centrePulse 0.38s cubic-bezier(0.34,1.56,0.64,1); }
 
-        /* ═══════════════════════════════════════════════════
-           BUFFERING SPINNER
-        ═══════════════════════════════════════════════════ */
+        /* ── Spinner ── */
         #spinner {
             position: absolute;
             top: 50%; left: 50%;
@@ -159,8 +147,7 @@
             border-radius: 50%;
             border: 3px solid rgba(255,255,255,0.12);
             border-top-color: var(--accent, #e63946);
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0; pointer-events: none;
             transition: opacity 0.2s;
             animation: spin 0.85s linear infinite;
         }
@@ -168,9 +155,7 @@
         #root.state-buffering #centre-btn { opacity: 0; pointer-events: none; }
         @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
 
-        /* ═══════════════════════════════════════════════════
-           CONTROL BAR
-        ═══════════════════════════════════════════════════ */
+        /* ── Control bar ── */
         #bar {
             position: absolute;
             bottom: 0; left: 0; right: 0;
@@ -184,13 +169,9 @@
         #player:hover #bar,
         #root.state-paused  #bar,
         #root.state-initial #bar,
-        #root.state-ended   #bar {
-            opacity: 1;
-            transform: translateY(0);
-            pointer-events: auto;
-        }
+        #root.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
 
-        /* ── Progress track ── */
+        /* ── Progress ── */
         .prog-wrap {
             width: 100%;
             height: 20px;
@@ -214,56 +195,40 @@
         #prog-buf {
             position: absolute; left:0; top:0; height:100%;
             background: rgba(255,255,255,0.28);
-            border-radius: 3px;
-            width: 0%;
+            border-radius: 3px; width: 0%;
         }
         #prog-fill {
             position: absolute; left:0; top:0; height:100%;
             background: var(--accent, #e63946);
-            border-radius: 3px;
-            width: 0%;
+            border-radius: 3px; width: 0%;
             transition: background 0.3s;
         }
         #prog-thumb {
             position: absolute; top:50%; left:0%;
             width: 13px; height: 13px;
-            border-radius: 50%;
-            background: #fff;
+            border-radius: 50%; background: #fff;
             transform: translate(-50%, -50%);
-            opacity: 0;
-            pointer-events: none;
+            opacity: 0; pointer-events: none;
             transition: opacity 0.15s;
         }
         .prog-wrap:hover #prog-thumb { opacity: 1; }
 
         #prog-tip {
-            position: absolute;
-            bottom: 22px;
-            background: rgba(0,0,0,0.78);
-            color: #fff;
-            font-size: 11px;
-            padding: 2px 8px;
-            border-radius: 4px;
-            transform: translateX(-50%);
-            opacity: 0;
-            pointer-events: none;
-            white-space: nowrap;
-            left: 0%;
+            position: absolute; bottom: 22px;
+            background: rgba(0,0,0,0.78); color: #fff;
+            font-size: 11px; padding: 2px 8px;
+            border-radius: 4px; transform: translateX(-50%);
+            opacity: 0; pointer-events: none;
+            white-space: nowrap; left: 0%;
         }
 
-        /* ── Bottom row ── */
-        .row {
-            display: flex;
-            align-items: center;
-            gap: 4px;
-        }
+        /* ── Row ── */
+        .row { display:flex; align-items:center; gap:4px; }
 
         .ibtn {
-            background: none;
-            border: none;
+            background: none; border: none;
             color: rgba(255,255,255,0.88);
-            cursor: pointer;
-            width: 34px; height: 34px;
+            cursor: pointer; width: 34px; height: 34px;
             border-radius: 7px;
             display: flex; align-items: center; justify-content: center;
             transition: color 0.15s, background 0.15s;
@@ -277,42 +242,33 @@
             color: rgba(255,255,255,0.82);
             font-variant-numeric: tabular-nums;
             letter-spacing: 0.3px;
-            flex: 1;
-            padding-left: 4px;
+            flex: 1; padding-left: 4px;
         }
 
         .vol-group { display:flex; align-items:center; gap:4px; }
         #vol-slider {
             -webkit-appearance: none;
-            width: 0;
-            height: 3px;
+            width: 0; height: 3px;
             background: rgba(255,255,255,0.25);
-            border-radius: 3px;
-            outline: none;
-            cursor: pointer;
+            border-radius: 3px; outline: none; cursor: pointer;
             transition: width 0.22s ease;
         }
         .vol-group:hover #vol-slider { width: 64px; }
         #vol-slider::-webkit-slider-thumb {
             -webkit-appearance: none;
             width: 11px; height: 11px;
-            border-radius: 50%;
-            background: #fff;
-            cursor: pointer;
+            border-radius: 50%; background: #fff; cursor: pointer;
         }
         #vol-slider::-moz-range-thumb {
             width: 11px; height: 11px;
-            border-radius: 50%;
-            background: #fff;
-            border: none;
-            cursor: pointer;
+            border-radius: 50%; background: #fff; border: none; cursor: pointer;
         }
     </style>
 </head>
 <body>
 <div id="root" class="state-initial">
 
-    {{-- LAYER 1: YouTube iframe (original approach — no crop change) --}}
+    {{-- LAYER 1: Visible YouTube iframe — original structure, untouched --}}
     <div id="yt-wrap">
         <iframe id="yt-engine" src=""
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
@@ -320,17 +276,23 @@
         </iframe>
     </div>
 
-    {{-- LAYER 2: Pause cover — hides YT suggestions/branding when not playing --}}
+    {{-- HIDDEN DATA IFRAME: controls=1 so YouTube sends reliable infoDelivery
+         (currentTime + duration every ~250ms). Muted, 1×1px, off-screen. --}}
+    <iframe id="yt-data" src=""
+        allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+        referrerpolicy="strict-origin-when-cross-origin">
+    </iframe>
+
+    {{-- LAYER 2: Pause cover — hides YT branding/suggestions --}}
     <div id="pause-cover"></div>
 
-    {{-- LAYER 3: Transparent shield --}}
+    {{-- LAYER 3: Shield --}}
     <div id="shield"></div>
 
-    {{-- LAYER 4: Our custom player UI --}}
+    {{-- LAYER 4: Our UI --}}
     <div id="player">
 
         <div id="click-area" onclick="onPlayerClick()"></div>
-
         <div id="spinner"></div>
 
         <div id="centre-btn" onclick="onCentreClick()">
@@ -403,13 +365,13 @@
                     </svg>
                 </button>
 
-            </div>{{-- .row --}}
+            </div>
         </div>{{-- #bar --}}
     </div>{{-- #player --}}
 </div>{{-- #root --}}
 
 <script>
-// ── Config from Laravel ────────────────────────────────────────────────
+// ── Config ─────────────────────────────────────────────────────────────
 const VIDEO_ID = @json($videoId);
 const AUTOPLAY = @json($autoplay);
 const LOOP     = @json($loop);
@@ -420,95 +382,96 @@ document.documentElement.style.setProperty('--accent', ACCENT);
 const root       = document.getElementById('root');
 const pauseCover = document.getElementById('pause-cover');
 
-// ── Debug broadcaster ──────────────────────────────────────────────────
+// ── Debug ──────────────────────────────────────────────────────────────
 function dbg(level, msg, data) {
     window.parent.postMessage({ _kp_debug:true, level, msg, data:data||null, ts:Date.now() }, '*');
 }
-dbg('info', 'embed loaded', { VIDEO_ID, AUTOPLAY, LOOP, ORIGIN });
+dbg('info', 'embed loaded', { VIDEO_ID, AUTOPLAY, LOOP });
 
-// ── Load thumbnail for pause cover ────────────────────────────────────
-// Tries best quality first, falls back down the chain.
-// This image shows whenever paused/ended/initial — hides YT suggestions.
+// ── Thumbnail for pause cover ──────────────────────────────────────────
 (function loadThumb() {
-    const sizes = ['maxresdefault', 'sddefault', 'hqdefault', 'mqdefault'];
+    const sizes = ['maxresdefault','sddefault','hqdefault','mqdefault'];
     let i = 0;
-    function tryNext() {
-        if (i >= sizes.length) { pauseCover.style.background = '#000'; return; }
+    function next() {
+        if (i >= sizes.length) { pauseCover.style.background = '#111'; return; }
         const url = `https://i.ytimg.com/vi/${VIDEO_ID}/${sizes[i]}.jpg`;
         const img = new Image();
-        img.onload = function() {
-            // ytimg returns a tiny grey tile (120×90) for missing sizes — skip it
-            if (img.naturalWidth > 200) {
-                pauseCover.style.backgroundImage = `url('${url}')`;
-            } else { i++; tryNext(); }
-        };
-        img.onerror = function() { i++; tryNext(); };
+        img.onload = () => { if (img.naturalWidth > 200) { pauseCover.style.backgroundImage = `url('${url}')`; } else { i++; next(); } };
+        img.onerror = () => { i++; next(); };
         img.src = url;
     }
-    tryNext();
+    next();
 })();
 
-// ── Build YouTube iframe src ───────────────────────────────────────────
-const ytParams = new URLSearchParams({
-    modestbranding:  1,
-    showinfo:        0,
-    rel:             0,
-    controls:        0,
-    disablekb:       1,
-    iv_load_policy:  3,
-    fs:              0,
-    cc_load_policy:  0,
-    playsinline:     1,
-    enablejsapi:     1,   // ← required for postMessage API + infoDelivery events
-    autoplay:        AUTOPLAY,
-    loop:            LOOP,
+// ── Shared iframe params ───────────────────────────────────────────────
+const baseParams = {
+    modestbranding: 1, showinfo: 0, rel: 0,
+    disablekb: 1, iv_load_policy: 3, fs: 0,
+    cc_load_policy: 0, playsinline: 1,
+    enablejsapi: 1,
     origin:          ORIGIN,
     widget_referrer: ORIGIN,
-    aoriginsup:      1,
-    aorigins:        ORIGIN,
-    gporigin:        ORIGIN + '/',
-});
-// playlist must only be set when looping — empty string = "Video unavailable"
-if (LOOP === '1') ytParams.set('playlist', VIDEO_ID);
+    aoriginsup: 1, aorigins: ORIGIN, gporigin: ORIGIN + '/',
+};
 
-const ytFrame = document.getElementById('yt-engine');
-ytFrame.src = `https://www.youtube.com/embed/${VIDEO_ID}?${ytParams}`;
-ytFrame.addEventListener('load', () => dbg('success', 'YT iframe loaded'));
+// ── VISIBLE iframe — controls=0, the player the user sees ─────────────
+const visParams = new URLSearchParams({
+    ...baseParams,
+    controls: 0,
+    autoplay: AUTOPLAY,
+    loop:     LOOP,
+    mute:     0,
+});
+if (LOOP === '1') visParams.set('playlist', VIDEO_ID);
+
+const ytEngine = document.getElementById('yt-engine');
+ytEngine.src = `https://www.youtube.com/embed/${VIDEO_ID}?${visParams}`;
+
+// ── HIDDEN DATA iframe — controls=1, muted, synced ────────────────────
+// controls=1 causes YouTube to send infoDelivery events with currentTime
+// and duration reliably every ~250ms during playback. We use ONLY these
+// events to drive our progress bar. The iframe is muted & hidden.
+const dataParams = new URLSearchParams({
+    ...baseParams,
+    controls: 1,       // must be 1 — this is what triggers reliable infoDelivery
+    autoplay: AUTOPLAY,
+    loop:     LOOP,
+    mute:     1,       // always muted — user never hears it
+});
+if (LOOP === '1') dataParams.set('playlist', VIDEO_ID);
+
+const ytData = document.getElementById('yt-data');
+ytData.src = `https://www.youtube.com/embed/${VIDEO_ID}?${dataParams}`;
 
 // ── Player state ───────────────────────────────────────────────────────
 let isPlaying  = false;
 let isMuted    = false;
-let curTime    = 0;   // seconds — synced from infoDelivery, ticked locally
-let duration   = 0;   // seconds — set once from infoDelivery
+let curTime    = 0;
+let duration   = 0;
 let seeking    = false;
 let hideTimer  = null;
 let flashTimer = null;
 
-// ── Local progress ticker ──────────────────────────────────────────────
-// infoDelivery gives us currentTime when YT decides to send it (unreliable
-// cadence). We use it to SYNC our local ticker, which then runs every 250ms
-// to keep the bar smooth. On seek/skip we reset the ticker base.
-let tickId  = null;
-let tickBase = { t: 0, ms: 0 }; // { t: seconds at base, ms: performance.now() at base }
+// Track which iframe each postMessage came from
+// so we know whether to update state or just progress data
+function isDataFrame(e) { return e.source === ytData.contentWindow; }
+function isVisFrame(e)  { return e.source === ytEngine.contentWindow; }
 
-function startTick() {
-    if (tickId) return;
-    syncTickBase(curTime);
-    tickId = setInterval(tickProgress, 250);
+// ── Send command to BOTH iframes (keeps them in sync) ─────────────────
+function sendBoth(func, args) {
+    const msg = JSON.stringify({ event:'command', func, args: args||[] });
+    if (ytEngine.contentWindow) ytEngine.contentWindow.postMessage(msg, '*');
+    if (ytData.contentWindow)   ytData.contentWindow.postMessage(msg, '*');
 }
-function stopTick() {
-    clearInterval(tickId);
-    tickId = null;
+// Send only to visible iframe (e.g. volume — data iframe is always muted)
+function sendVis(func, args) {
+    const msg = JSON.stringify({ event:'command', func, args: args||[] });
+    if (ytEngine.contentWindow) ytEngine.contentWindow.postMessage(msg, '*');
 }
-function syncTickBase(t) {
-    tickBase = { t, ms: performance.now() };
-    curTime  = t;
-}
-function tickProgress() {
-    if (!isPlaying || seeking || duration <= 0) return;
-    const elapsed = (performance.now() - tickBase.ms) / 1000;
-    curTime = Math.min(duration, tickBase.t + elapsed);
-    updateProgress();
+// Send only to data iframe
+function sendData(func, args) {
+    const msg = JSON.stringify({ event:'command', func, args: args||[] });
+    if (ytData.contentWindow) ytData.contentWindow.postMessage(msg, '*');
 }
 
 // ── State machine ──────────────────────────────────────────────────────
@@ -526,68 +489,62 @@ function flashCentre(icon) {
     centreBtn.classList.remove('pulse');
     void centreBtn.offsetWidth;
     centreBtn.classList.add('pulse');
-    centreBtn.addEventListener('animationend', () => centreBtn.classList.remove('pulse'), { once: true });
+    centreBtn.addEventListener('animationend', () => centreBtn.classList.remove('pulse'), { once:true });
     if (icon === 'pause') {
         clearTimeout(flashTimer);
         root.classList.add('centre-flash');
         flashTimer = setTimeout(() => root.classList.remove('centre-flash'), 700);
     }
 }
-function updatePlayIcon() {
-    playIco.innerHTML = isPlaying ? ICO_PAUSE : ICO_PLAY;
-}
+function updatePlayIcon() { playIco.innerHTML = isPlaying ? ICO_PAUSE : ICO_PLAY; }
 
-// ── Click / toggle ────────────────────────────────────────────────────
+// ── Play / Pause ───────────────────────────────────────────────────────
 function onPlayerClick() { togglePlay(null); }
 function onCentreClick() { togglePlay(null); }
 
 function togglePlay(e) {
     if (e) e.stopPropagation();
     if (isPlaying) {
-        ytSend('pauseVideo');
+        sendBoth('pauseVideo');
         isPlaying = false;
         setState('paused');
         flashCentre('play');
         updatePlayIcon();
-        stopTick();
     } else {
-        ytSend('playVideo');
+        sendBoth('playVideo');
         isPlaying = true;
         setState('playing');
         flashCentre('pause');
         updatePlayIcon();
         scheduleHide();
-        startTick();
     }
 }
-
 function scheduleHide() {
     clearTimeout(hideTimer);
     hideTimer = setTimeout(() => {}, 2500);
 }
 
-// ── Skip ──────────────────────────────────────────────────────────────
+// ── Skip — send to both iframes so data iframe stays in sync ──────────
 function skip(e, sec) {
     if (e) e.stopPropagation();
     if (!duration) return;
-    // clamp to [0, duration]
     const t = Math.max(0, Math.min(duration, curTime + sec));
-    ytSend('seekTo', [t, true]);
-    syncTickBase(t);   // reset ticker base so it counts from new position
+    sendBoth('seekTo', [t, true]);
+    curTime = t;
     updateProgress();
 }
 
-// ── Volume ────────────────────────────────────────────────────────────
+// ── Volume — only visible iframe (data is always muted) ───────────────
 function toggleMute(e) {
     if (e) e.stopPropagation();
-    if (isMuted) { ytSend('unMute'); isMuted = false; }
-    else         { ytSend('mute');   isMuted = true;  }
+    if (isMuted) { sendVis('unMute'); isMuted = false; }
+    else         { sendVis('mute');   isMuted = true;  }
     updateVolIcon();
 }
 function setVolume(v) {
-    ytSend('setVolume', [+v]);
+    sendVis('setVolume', [+v]);
     isMuted = +v === 0;
-    if (isMuted) ytSend('mute'); else ytSend('unMute');
+    if (isMuted) sendVis('mute'); else sendVis('unMute');
     updateVolIcon();
 }
 function updateVolIcon() {
@@ -633,20 +590,27 @@ function updateProgress() {
     document.getElementById('time-display').textContent = fmt(curTime) + ' / ' + fmt(duration);
 }
 
-// ── Progress bar — seek (mouse) ───────────────────────────────────────
+// ── Progress bar — seek ───────────────────────────────────────────────
 const progEl = document.getElementById('prog');
 
-progEl.addEventListener('mousedown', function(e) {
+function pxToTime(clientX) {
+    const rect = progEl.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) * duration;
+}
+
+progEl.addEventListener('mousedown', (e) => {
     if (!duration) return;
     e.stopPropagation();
     seeking = true;
-    doSeek(e.clientX);
-    const onMove = ev => { if (seeking) doSeek(ev.clientX); };
+    curTime = pxToTime(e.clientX);
+    updateProgress();
+    const onMove = ev => { if (seeking) { curTime = pxToTime(ev.clientX); updateProgress(); } };
     const onUp   = ev => {
-        const t = pxToTime(ev.clientX);
-        ytSend('seekTo', [t, true]);
-        syncTickBase(t);
         seeking = false;
+        const t = pxToTime(ev.clientX);
+        sendBoth('seekTo', [t, true]);
+        curTime = t;
+        updateProgress();
         document.removeEventListener('mousemove', onMove);
         document.removeEventListener('mouseup',   onUp);
     };
@@ -654,7 +618,7 @@ progEl.addEventListener('mousedown', function(e) {
     document.addEventListener('mouseup',   onUp);
 });
 
-progEl.addEventListener('mousemove', function(e) {
+progEl.addEventListener('mousemove', (e) => {
     if (!duration) return;
     const t   = pxToTime(e.clientX);
     const tip = document.getElementById('prog-tip');
@@ -662,182 +626,151 @@ progEl.addEventListener('mousemove', function(e) {
     tip.style.left    = ((t / duration) * 100) + '%';
     tip.style.opacity = '1';
 });
-progEl.addEventListener('mouseleave', function() {
+progEl.addEventListener('mouseleave', () => {
     document.getElementById('prog-tip').style.opacity = '0';
 });
 
-// ── Progress bar — seek (touch) ───────────────────────────────────────
-progEl.addEventListener('touchstart', function(e) {
+// Touch
+progEl.addEventListener('touchstart', (e) => {
     if (!duration) return;
     e.preventDefault();
     seeking = true;
-    doSeek(e.touches[0].clientX);
-    const onMove = ev => { if (seeking) { ev.preventDefault(); doSeek(ev.touches[0].clientX); } };
+    curTime = pxToTime(e.touches[0].clientX);
+    updateProgress();
+    const onMove = ev => { if (seeking) { ev.preventDefault(); curTime = pxToTime(ev.touches[0].clientX); updateProgress(); } };
     const onEnd  = ev => {
-        const t = pxToTime(ev.changedTouches[0].clientX);
-        ytSend('seekTo', [t, true]);
-        syncTickBase(t);
         seeking = false;
+        const t = pxToTime(ev.changedTouches[0].clientX);
+        sendBoth('seekTo', [t, true]);
+        curTime = t;
+        updateProgress();
         document.removeEventListener('touchmove', onMove);
         document.removeEventListener('touchend',  onEnd);
     };
-    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive:false });
     document.addEventListener('touchend',  onEnd);
-}, { passive: false });
-
-function pxToTime(clientX) {
-    const rect = progEl.getBoundingClientRect();
-    return Math.min(1, Math.max(0, (clientX - rect.left) / rect.width)) * duration;
-}
-function doSeek(clientX) {
-    curTime = pxToTime(clientX);
-    updateProgress();
-}
+}, { passive:false });
 
 // ── postMessage handler ───────────────────────────────────────────────
 window.addEventListener('message', function(e) {
     const d = e.data;
 
-    // ── Commands from outer killerplayer shell ──
+    // Commands from outer killerplayer shell
     if (d && typeof d === 'object' && !d._kp_debug && d.cmd) {
-        if (d.cmd === 'play')   { ytSend('playVideo');  isPlaying=true;  setState('playing'); updatePlayIcon(); startTick(); }
-        if (d.cmd === 'pause')  { ytSend('pauseVideo'); isPlaying=false; setState('paused');  updatePlayIcon(); stopTick();  }
-        if (d.cmd === 'mute')   { ytSend('mute');   isMuted=true;  updateVolIcon(); }
-        if (d.cmd === 'unmute') { ytSend('unMute'); isMuted=false; updateVolIcon(); }
-        if (d.cmd === 'volume') {
-            ytSend('setVolume', [+d.value]);
-            document.getElementById('vol-slider').value = d.value;
-        }
-        if (d.cmd === 'seek' && duration > 0) {
-            ytSend('seekTo', [d.value, true]);
-            syncTickBase(d.value);
-            updateProgress();
-        }
-        if (d.cmd === 'accent') {
-            document.documentElement.style.setProperty('--accent', d.value);
-        }
+        if (d.cmd === 'play')   { sendBoth('playVideo');  isPlaying=true;  setState('playing'); updatePlayIcon(); }
+        if (d.cmd === 'pause')  { sendBoth('pauseVideo'); isPlaying=false; setState('paused');  updatePlayIcon(); }
+        if (d.cmd === 'mute')   { sendVis('mute');   isMuted=true;  updateVolIcon(); }
+        if (d.cmd === 'unmute') { sendVis('unMute'); isMuted=false; updateVolIcon(); }
+        if (d.cmd === 'volume') { sendVis('setVolume', [+d.value]); document.getElementById('vol-slider').value = d.value; }
+        if (d.cmd === 'seek' && duration > 0) { sendBoth('seekTo', [d.value, true]); curTime = d.value; updateProgress(); }
+        if (d.cmd === 'accent') { document.documentElement.style.setProperty('--accent', d.value); }
         return;
     }
 
-    // ── Events from YouTube iframe ──
     if (typeof e.data !== 'string') return;
     let yt;
     try { yt = JSON.parse(e.data); } catch (_) { return; }
     if (!yt || !yt.event) return;
 
-    // onReady
+    // ── onReady ──
+    // Both iframes fire onReady. Track which one is ready.
     if (yt.event === 'onReady') {
-        dbg('success', 'YouTube engine ready ✓');
-        ytSend('setVolume', [80]);
-        if (AUTOPLAY === '1') {
-            ytSend('playVideo');
-            isPlaying = true;
-            setState('playing');
-            flashCentre('pause');
-            updatePlayIcon();
-            scheduleHide();
-            startTick();
+        if (isVisFrame(e)) {
+            dbg('success', 'visible iframe ready');
+            sendVis('setVolume', [80]);
+            if (AUTOPLAY === '1') {
+                // Visible iframe autoplay already set via param — just update state
+                isPlaying = true;
+                setState('playing');
+                flashCentre('pause');
+                updatePlayIcon();
+                scheduleHide();
+            }
+            window.parent.postMessage(yt, '*');
         }
-        window.parent.postMessage(yt, '*');
+        if (isDataFrame(e)) {
+            dbg('success', 'data iframe ready');
+            // Always keep data iframe muted
+            sendData('mute');
+            sendData('setVolume', [0]);
+        }
     }
 
-    // onStateChange
-    if (yt.event === 'onStateChange') {
+    // ── onStateChange ──
+    // Only drive UI state from the VISIBLE iframe events.
+    // Data iframe state changes are ignored for UI — we only want its time data.
+    if (yt.event === 'onStateChange' && isVisFrame(e)) {
         const s = yt.info;
-        if (s === 1) {  // playing
+        if (s === 1) {
             isPlaying = true;
             setState('playing');
             updatePlayIcon();
             scheduleHide();
-            startTick();
         }
-        if (s === 2) {  // paused
+        if (s === 2) {
             isPlaying = false;
             setState('paused');
             centreIco.innerHTML = ICO_PLAY;
             updatePlayIcon();
-            stopTick();
         }
-        if (s === 0) {  // ended — reset curTime so skip starts clean on replay
+        if (s === 0) {
             isPlaying = false;
             curTime   = 0;
             setState('ended');
             centreIco.innerHTML = ICO_PLAY;
             updatePlayIcon();
-            stopTick();
             updateProgress();
             if (LOOP === '1') {
-                ytSend('playVideo');
+                sendBoth('playVideo');
                 isPlaying = true;
-                syncTickBase(0);
                 setState('playing');
                 scheduleHide();
-                startTick();
             }
         }
         if (s === 3) setState('buffering');
-        if (s === -1) { // unstarted / restarted — reset
-            curTime = 0;
-            syncTickBase(0);
-            setState('initial');
-            updateProgress();
-        }
+        if (s === -1) { curTime = 0; updateProgress(); setState('initial'); }
+
         const labels = {'-1':'unstarted','0':'ended','1':'playing','2':'paused','3':'buffering','5':'cued'};
-        dbg('yt', `state → ${labels[s] !== undefined ? labels[s] : s}`);
+        dbg('yt', 'vis state → ' + (labels[s] !== undefined ? labels[s] : s));
         window.parent.postMessage(yt, '*');
     }
 
-    // onError
-    if (yt.event === 'onError') {
-        const errs = {
-            2:'Invalid videoId', 100:'Not found/private',
-            101:'Embedding disabled', 150:'Embedding disabled',
-            152:'Origin rejected — check APP_URL in .env', 153:'Player config error',
-        };
+    // ── onError ──
+    if (yt.event === 'onError' && isVisFrame(e)) {
+        const errs = { 2:'Invalid videoId', 100:'Not found/private', 101:'Embedding disabled', 150:'Embedding disabled', 152:'Origin rejected', 153:'Player config error' };
         dbg('error', `YouTube error ${yt.data}: ${errs[yt.data]||'unknown'}`, { code: yt.data });
         window.parent.postMessage(yt, '*');
     }
 
-    // infoDelivery — YouTube sends currentTime + duration here during playback.
-    // We use this to SYNC our local ticker (corrects drift every time YT sends it).
-    // We never rely on it as the sole source — the ticker fills in between.
-    if (yt.event === 'infoDelivery' && yt.info) {
+    // ── infoDelivery — FROM DATA IFRAME ONLY ──────────────────────────
+    // controls=1 on the data iframe causes YouTube to push currentTime and
+    // duration every ~250ms during playback. This is the reliable data source
+    // we were missing. We use it exclusively to update our progress bar.
+    if (yt.event === 'infoDelivery' && yt.info && isDataFrame(e)) {
         const info = yt.info;
 
-        // Sync duration as soon as we get it
-        if (info.duration != null && info.duration > 0 && duration !== info.duration) {
+        if (info.duration != null && info.duration > 0) {
             duration = info.duration;
-            dbg('info', 'duration: ' + fmt(duration));
+        }
+        if (info.currentTime != null && !seeking) {
+            curTime = info.currentTime;
             updateProgress();
         }
-
-        // Sync currentTime — only update ticker base, don't overwrite during seek
-        if (info.currentTime != null && !seeking) {
-            // Only resync if drift > 1s to avoid jitter from stale YT messages
-            if (Math.abs(info.currentTime - curTime) > 1 || !isPlaying) {
-                syncTickBase(info.currentTime);
-                updateProgress();
-            }
-        }
-
-        // Buffer bar
         if (info.videoLoadedFraction != null) {
             document.getElementById('prog-buf').style.width =
                 (info.videoLoadedFraction * 100) + '%';
         }
+    }
 
-        window.parent.postMessage(yt, '*');
+    // Also accept infoDelivery from visible iframe as fallback
+    if (yt.event === 'infoDelivery' && yt.info && isVisFrame(e)) {
+        const info = yt.info;
+        if (info.duration != null && info.duration > 0 && duration === 0) {
+            duration = info.duration;
+            updateProgress();
+        }
     }
 });
-
-// ── Send command to YouTube iframe ────────────────────────────────────
-function ytSend(func, args) {
-    const eng = document.getElementById('yt-engine');
-    if (eng && eng.contentWindow)
-        eng.contentWindow.postMessage(
-            JSON.stringify({ event: 'command', func, args: args || [] }), '*'
-        );
-}
 
 // ── Format seconds → m:ss ─────────────────────────────────────────────
 function fmt(s) {
