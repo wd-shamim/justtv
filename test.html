@@ -1,0 +1,910 @@
+<body class="bg-[#0d0d0d] text-[#f1f1f1] min-h-screen flex flex-col items-center px-5 py-10 theme-wistia">
+
+    
+    <header class="text-center mb-8">
+        <h1 class="font-bebas text-[clamp(2.4rem,7vw,4rem)] tracking-[4px] leading-none" style="color:var(--accent)">
+            KillerPlayer
+        </h1>
+        <p class="text-[#555] text-xs mt-1.5 tracking-widest uppercase">No Ads · No Logo · No Limits</p>
+    </header>
+
+    
+    <div class="flex gap-2 w-full max-w-[720px] mb-5">
+        <input type="text" id="ytUrl" placeholder="Paste YouTube URL…  e.g. https://youtu.be/tgbNymZ7vqY" class="flex-1 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg text-[#f1f1f1] text-sm px-4 py-3 outline-none transition-colors placeholder:text-[#444]">
+        <button onclick="loadVideo()" class="font-bebas tracking-[2px] text-base px-6 py-3 rounded-lg text-white whitespace-nowrap hover:opacity-90 active:scale-95 transition-all" style="background:var(--accent)">LOAD</button>
+    </div>
+
+    
+    <div class="flex gap-2 flex-wrap justify-center max-w-[720px] w-full mb-6">
+                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] active" data-theme="theme-wistia" data-color="#e63946" onclick="setTheme(this)">
+            Wistia
+        </button>
+                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-vimeo" data-color="#1ab7ea" onclick="setTheme(this)">
+            Vimeo
+        </button>
+                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-viddler" data-color="#f4a015" onclick="setTheme(this)">
+            Viddler
+        </button>
+                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-vzaar" data-color="#7c3aed" onclick="setTheme(this)">
+            Vzaar
+        </button>
+                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-tara" data-color="#10b981" onclick="setTheme(this)">
+            Tara
+        </button>
+            </div>
+
+    
+    <div class="player-shell w-full max-w-[720px] bg-black relative" id="playerShell" style="border-radius:16px; box-shadow:0 28px 80px rgba(0,0,0,.7);">
+
+        
+        <div class="relative bg-black" style="padding-top:56.25%; border-radius:inherit; overflow:hidden;">
+
+            
+            <div id="placeholder" class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#080808] transition-opacity duration-300 opacity-0 pointer-events-none">
+                <svg width="54" height="54" viewBox="0 0 24 24" fill="none" class="opacity-20">
+                    <circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.2"></circle>
+                    <path d="M10 8l6 4-6 4V8z" fill="#fff"></path>
+                </svg>
+                <span class="text-[#444] text-sm tracking-wide">Paste a YouTube URL above and hit LOAD</span>
+            </div>
+
+            
+            <div id="watermark" class="absolute top-3 right-3.5 z-20 rounded-md px-3 py-1 font-bebas text-sm tracking-[2px] text-white/65 pointer-events-none opacity-0 transition-opacity" style="background:rgba(0,0,0,.52); backdrop-filter:blur(8px)">MY BRAND</div>
+
+            
+            <div id="iframeSlot" class="absolute inset-0"><iframe src="http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen="" referrerpolicy="strict-origin-when-cross-origin" style="position: absolute; inset: 0px; width: 100%; height: 100%; border: none;"></iframe></div>
+        </div>
+    </div>
+
+    
+    <div class="w-full max-w-[720px] mt-5 bg-[#161616] rounded-xl p-5 border border-[#222]">
+        <h3 class="font-bebas tracking-[2.5px] text-[#555] text-sm mb-4">Player Settings</h3>
+        <div class="grid grid-cols-2 gap-4 mb-4">
+            <div>
+                <label class="block text-[#555] text-[11px] uppercase tracking-wide mb-1.5">Accent Color</label>
+                <input type="color" id="colorPick" value="#e63946" oninput="setAccent(this.value)" class="w-full h-9 rounded-md border border-[#2a2a2a] bg-[#1f1f1f] cursor-pointer p-0.5">
+            </div>
+            <div>
+                <label class="block text-[#555] text-[11px] uppercase tracking-wide mb-1.5">Watermark Text</label>
+                <input type="text" id="wmInput" placeholder="MY BRAND" oninput="updateWM(this.value)" class="w-full bg-[#1f1f1f] border border-[#2a2a2a] rounded-md text-[#f1f1f1] text-sm px-3 py-2 outline-none placeholder:text-[#444]">
+            </div>
+        </div>
+
+                        <div class="flex items-center justify-between py-2.5 border-b border-[#1c1c1c]">
+            <span class="text-sm text-[#f1f1f1]">Show Watermark</span>
+            <button id="togWM" onclick="toggleOpt('wm')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer " style="background:#2e2e2e">
+            </button>
+        </div>
+                <div class="flex items-center justify-between py-2.5 border-b border-[#1c1c1c]">
+            <span class="text-sm text-[#f1f1f1]">Autoplay on Load</span>
+            <button id="togAuto" onclick="toggleOpt('auto')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer" style="background: rgb(46, 46, 46);">
+            </button>
+        </div>
+                <div class="flex items-center justify-between py-2.5 ">
+            <span class="text-sm text-[#f1f1f1]">Loop Video</span>
+            <button id="togLoop" onclick="toggleOpt('loop')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer" style="background: rgb(46, 46, 46);">
+            </button>
+        </div>
+            </div>
+
+    
+    <div class="w-full max-w-[720px] mt-5" id="debugPanel">
+        <div class="flex items-center justify-between mb-2">
+            <button onclick="toggleDebug()" class="flex items-center gap-2 text-xs text-[#555] hover:text-white transition-colors font-mono">
+                <span id="debugArrow">▼</span>
+                <span>DEBUG PANEL</span>
+                <span id="debugBadge" class="bg-[#1f1f1f] text-[#555] px-2 py-0.5 rounded text-[10px]">118 events</span>
+            </button>
+            <div class="flex gap-2">
+                <button onclick="copyDebugLog()" class="text-[10px] text-[#555] hover:text-white bg-[#1f1f1f] px-2 py-1 rounded font-mono transition-colors">COPY LOG</button>
+                <button onclick="clearDebugLog()" class="text-[10px] text-[#555] hover:text-white bg-[#1f1f1f] px-2 py-1 rounded font-mono transition-colors">CLEAR</button>
+            </div>
+        </div>
+
+        <div id="debugBody" class="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden">
+            
+            <div class="flex flex-wrap gap-3 px-4 py-3 border-b border-[#1a1a1a] text-[11px] font-mono">
+                <span class="text-[#555]">ORIGIN: <span class="text-[#34d399]">http://127.0.0.1:8000</span></span>
+                <span class="text-[#555]">EMBED ROUTE: <span class="text-[#60a5fa]">http://127.0.0.1:8000/killerplayer/embed</span></span>
+                <span class="text-[#555]">YT STATE: <span id="dbgState" class="text-white">⏸ paused</span></span>
+                <span class="text-[#555]">ERRORS: <span id="dbgErrorCount" class="text-[#f87171]">0</span></span>
+            </div>
+            <div class="flex flex-wrap gap-3 px-4 py-2 border-b border-[#1a1a1a] text-[11px] font-mono">
+                <span class="text-[#555]">IFRAME: <span id="dbgIframe" class="text-[#34d399]">loaded ✓</span></span>
+                <span class="text-[#555]">YT READY: <span id="dbgReady" class="text-[#34d399]">ready ✓</span></span>
+                <span class="text-[#555]">VIDEO ID: <span id="dbgVid" class="text-[#fbbf24]">Inmk3zl1qJ8</span></span>
+            </div>
+            <div id="debugLog" class="px-4 py-3 text-[11px] font-mono space-y-1"><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:49</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">KillerPlayer ready</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"origin":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">player ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">duration: 1:58</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">thumbnail set: maxresdefault</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:55</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">player ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">duration: 1:58</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">thumbnail set: maxresdefault</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:07</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:07</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:10</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:10</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:18</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:18</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">player ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">duration: 1:58</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">thumbnail: maxresdefault</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:25</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:25</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:28</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:28</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:39</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:39</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:41</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:41</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:44</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:44</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:47</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:47</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
+            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:23</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:23</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:24</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1","ORIGIN":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:25</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:25</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:36</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=1&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:36</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:39</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:39</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:12</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:12</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:16</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:16</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:33</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:33</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:34</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:35</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:40</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:41</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:42</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:49</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:49</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:50</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:51</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:56</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:57</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:58</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:31</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
+            
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:31</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:32</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
+            <span class="text-[#ccc] flex-1">embed loaded</span>
+            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
+        </div><div class="flex gap-2 items-start leading-relaxed">
+            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:33</span>
+            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
+            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
+            
+        </div></div>
+            <div class="px-4 py-3 border-t border-[#1a1a1a] text-[11px] font-mono text-[#444] space-y-1">
+                <div class="text-[#555] mb-1">ERROR CODES:</div>
+                <div><span class="text-[#f87171]">2</span> — Invalid videoId</div>
+                <div><span class="text-[#f87171]">100</span> — Video not found or private</div>
+                <div><span class="text-[#f87171]">101/150</span> — Owner disabled embedding</div>
+                <div><span class="text-[#f87171]">152</span> — Origin rejected — check APP_URL in <span class="text-white">.env</span> matches your domain</div>
+                <div><span class="text-[#f87171]">153</span> — Player config error</div>
+            </div>
+        </div>
+    </div>
+
+<script>
+    let innerFrame = null;
+    let videoId    = null;
+    let debugOpen  = false;
+    let logCount   = 0;
+    let errorCount = 0;
+    let opts       = { wm:false, auto:true, loop:false };
+    let curAccent  = '#e63946';
+
+    // ── Debug logger ──
+    function log(level, msg, data) {
+        logCount++;
+        document.getElementById('debugBadge').textContent = logCount + ' events';
+        const colors = { info:'log-info', success:'log-success', error:'log-error', cmd:'log-cmd', yt:'log-yt', warn:'log-warn' };
+        const time   = new Date().toLocaleTimeString('en',{hour12:false});
+        const line   = document.createElement('div');
+        line.className = 'flex gap-2 items-start leading-relaxed';
+        line.innerHTML = `
+            <span class="text-[#333] flex-shrink-0 w-[60px]">${time}</span>
+            <span class="flex-shrink-0 w-[52px] uppercase ${colors[level]||'text-white'}">${level}</span>
+            <span class="text-[#ccc] flex-1">${msg}</span>
+            ${data ? `<span class="text-[#555] truncate max-w-[180px] text-[10px]">${JSON.stringify(data)}</span>` : ''}
+        `;
+        const el = document.getElementById('debugLog');
+        el.appendChild(line);
+        el.scrollTop = el.scrollHeight;
+        if (level === 'error') {
+            errorCount++;
+            document.getElementById('dbgErrorCount').textContent = errorCount;
+            if (!debugOpen) toggleDebug();
+        }
+    }
+
+    function toggleDebug() {
+        debugOpen = !debugOpen;
+        document.getElementById('debugBody').classList.toggle('hidden', !debugOpen);
+        document.getElementById('debugArrow').textContent = debugOpen ? '▼' : '▶';
+    }
+    function clearDebugLog() {
+        document.getElementById('debugLog').innerHTML = '';
+        logCount = 0; errorCount = 0;
+        document.getElementById('debugBadge').textContent = '0 events';
+        document.getElementById('dbgErrorCount').textContent = '0';
+    }
+    function copyDebugLog() {
+        const lines = [...document.querySelectorAll('#debugLog > div')]
+            .map(l => l.textContent.replace(/\s+/g,' ').trim()).join('\n');
+        navigator.clipboard.writeText(lines).then(() => {
+            event.target.textContent='COPIED!';
+            setTimeout(()=>event.target.textContent='COPY LOG',1500);
+        });
+    }
+
+    // ── Build embed URL — includes accent color so inner player matches theme ──
+    function embedUrl(id) {
+        const p = new URLSearchParams({
+            v:      id,
+            auto:   opts.auto  ? '1':'0',
+            loop:   opts.loop  ? '1':'0',
+            accent: curAccent,
+        });
+        return `http://127.0.0.1:8000/killerplayer/embed?${p}`;
+    }
+
+    function extractId(url) {
+        const m = url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
+        return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(url) ? url : null);
+    }
+
+    function loadVideo() {
+        const raw = document.getElementById('ytUrl').value.trim();
+        const id  = extractId(raw);
+        const inp = document.getElementById('ytUrl');
+        if (!id) {
+            inp.classList.add('shake');
+            setTimeout(()=>inp.classList.remove('shake'),400);
+            log('error','Could not extract a valid YouTube video ID',{input:raw});
+            return;
+        }
+        videoId = id;
+        document.getElementById('dbgVid').textContent = id;
+        log('info',`Loading video ID: ${id}`);
+        spawnInner(id);
+    }
+
+    function spawnInner(id) {
+        const slot = document.getElementById('iframeSlot');
+        slot.innerHTML = '';
+
+        const url = embedUrl(id);
+        log('info','Spawning embed iframe',{url});
+
+        innerFrame = document.createElement('iframe');
+        innerFrame.src = url;
+        innerFrame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;';
+        innerFrame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
+        innerFrame.allowFullscreen = true;
+        innerFrame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
+        innerFrame.addEventListener('load', () => {
+            document.getElementById('dbgIframe').textContent = 'loaded ✓';
+            document.getElementById('dbgIframe').className   = 'text-[#34d399]';
+            log('success','embed iframe loaded');
+        });
+        slot.appendChild(innerFrame);
+
+        document.getElementById('placeholder').classList.add('opacity-0','pointer-events-none');
+    }
+
+    // ── Receive messages from embed.blade ──
+    window.addEventListener('message', function(e) {
+        let d;
+        try { d = typeof e.data==='string' ? JSON.parse(e.data) : e.data; } catch { return; }
+        if (!d) return;
+
+        // Debug messages from embed.blade
+        if (d._kp_debug) {
+            log(d.level, d.msg, d.data);
+            return;
+        }
+
+        // YouTube player events
+        if (d.event === 'onReady') {
+            document.getElementById('dbgReady').textContent = 'ready ✓';
+            document.getElementById('dbgReady').className   = 'text-[#34d399]';
+            log('success','YouTube engine ready ✓');
+        }
+        if (d.event === 'onStateChange') {
+            const labels = {'-1':'unstarted','0':'ended','1':'▶ playing','2':'⏸ paused','3':'⏳ buffering','5':'cued'};
+            document.getElementById('dbgState').textContent = labels[d.info]||d.info;
+            log('yt',`state → ${labels[d.info]||d.info}`);
+        }
+        if (d.event === 'onError') {
+            const errors = {
+                2:'Invalid videoId',100:'Not found/private',
+                101:'Embedding disabled',150:'Embedding disabled',
+                152:'Origin rejected — check APP_URL in .env',153:'Player config error',
+            };
+            log('error',`YouTube Error ${d.data}: ${errors[d.data]||'unknown'}`,{code:d.data});
+        }
+    });
+
+    // ── Send command to embed iframe ──
+    function sendInner(obj) {
+        if (innerFrame && innerFrame.contentWindow)
+            innerFrame.contentWindow.postMessage(obj,'*');
+    }
+
+    // ── Theme ──
+    const ALL_THEMES = ['theme-wistia','theme-vimeo','theme-viddler','theme-vzaar','theme-tara'];
+    function setTheme(btn) {
+        ALL_THEMES.forEach(t => document.body.classList.remove(t));
+        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
+        document.body.classList.add(btn.dataset.theme);
+        btn.classList.add('active');
+        setAccent(btn.dataset.color);
+        document.getElementById('colorPick').value = btn.dataset.color;
+    }
+
+    function setAccent(c) {
+        curAccent = c;
+        document.documentElement.style.setProperty('--accent', c);
+        // Push accent into the live embed iframe so progress bar color updates
+        sendInner({ cmd:'accent', value:c });
+        // If video is loaded, respawn with new accent
+        // (only needed for full re-render — postMessage handles live update above)
+    }
+
+    function updateWM(t) {
+        document.getElementById('watermark').textContent = t || 'MY BRAND';
+    }
+
+    function toggleOpt(key) {
+        opts[key] = !opts[key];
+        const ids = { wm:'togWM', auto:'togAuto', loop:'togLoop' };
+        const btn = document.getElementById(ids[key]);
+        btn.classList.toggle('on', opts[key]);
+        btn.style.background = opts[key] ? 'var(--accent)' : '#2e2e2e';
+        if (key === 'wm') {
+            document.getElementById('watermark').classList.toggle('opacity-0',  !opts[key]);
+            document.getElementById('watermark').classList.toggle('opacity-100', opts[key]);
+        }
+        if ((key==='auto'||key==='loop') && videoId) spawnInner(videoId);
+    }
+
+    document.getElementById('ytUrl').addEventListener('keydown', e => {
+        if (e.key==='Enter') loadVideo();
+    });
+
+    log('info','KillerPlayer ready',{origin:'http://127.0.0.1:8000'});
+</script>
+
+<veepn-lock-screen><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-lock-screen><veepn-intro-offer><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-intro-offer></body>
