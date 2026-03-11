@@ -1,0 +1,757 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="referrer" content="strict-origin-when-cross-origin"/>
+    <title>KP Embed</title>
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
+
+        html, body {
+            width:100%; height:100%;
+            background:#000;
+            overflow:hidden;
+            font-family: system-ui, -apple-system, sans-serif;
+            user-select: none;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           ROOT — everything lives here, fullscreen targets this
+        ═══════════════════════════════════════════════════ */
+        #root {
+            position: absolute;
+            inset: 0;
+            background: #000;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           LAYER 1 — YouTube iframe (video engine only)
+           • 200% height / -50% top = crops top & bottom YT bars
+           • overflow:hidden on #yt-wrap = clips end-screen cards
+           • pointer-events:none = YouTube NEVER receives clicks
+        ═══════════════════════════════════════════════════ */
+        #yt-wrap {
+            position: absolute;
+            inset: 0;
+            overflow: hidden;
+            z-index: 1;
+        }
+        #yt-engine {
+            position: absolute;
+            width: 100%;
+            height: 200%;
+            top: -50%;
+            left: 0;
+            border: none;
+            pointer-events: none;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           LAYER 2 — Transparent shield
+           Sits above YouTube, below our UI.
+           Ensures no YouTube overlay (pause banner, end cards,
+           logo, info cards) can ever intercept a click.
+        ═══════════════════════════════════════════════════ */
+        #shield {
+            position: absolute;
+            inset: 0;
+            z-index: 2;
+            pointer-events: none;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           LAYER 3 — Our player UI
+        ═══════════════════════════════════════════════════ */
+        #player {
+            position: absolute;
+            inset: 0;
+            z-index: 3;
+        }
+
+        /* ── Clickable area (whole player) ── */
+        #click-area {
+            position: absolute;
+            inset: 0;
+            cursor: pointer;
+        }
+
+        /* ═══════════════════════════════════════════════════
+           BIG CENTRE BUTTON
+           • Visible only in: initial (first load) & paused states
+           • Hidden while playing (opacity:0, scale down, pointer-events:none)
+           • Animates on click with a ripple/scale pulse
+        ═══════════════════════════════════════════════════ */
+        #centre-btn {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%) scale(1);
+            width: 72px; height: 72px;
+            border-radius: 50%;
+            background: rgba(0,0,0,0.62);
+            backdrop-filter: blur(14px);
+            -webkit-backdrop-filter: blur(14px);
+            border: 2px solid rgba(255,255,255,0.18);
+            display: flex; align-items: center; justify-content: center;
+
+            /* default: hidden */
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.28s ease, transform 0.28s ease, background 0.18s;
+            cursor: pointer;
+        }
+        #centre-btn svg {
+            width: 30px; height: 30px;
+            fill: #fff;
+            transition: transform 0.15s;
+        }
+        #centre-btn:hover { background: rgba(0,0,0,0.82); }
+        #centre-btn:hover svg { transform: scale(1.08); }
+
+        /* Visible states */
+        #root.state-initial #centre-btn,
+        #root.state-paused  #centre-btn,
+        #root.state-ended   #centre-btn {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        /* Hide while playing */
+        #root.state-playing #centre-btn {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.88);
+            pointer-events: none;
+        }
+        /* Show briefly after play clicked (flash feedback) */
+        #root.state-playing.centre-flash #centre-btn {
+            opacity: 1;
+            transform: translate(-50%, -50%) scale(1);
+        }
+
+        /* Click pulse animation */
+        @keyframes centrePulse {
+            0%   { transform: translate(-50%,-50%) scale(1); }
+            35%  { transform: translate(-50%,-50%) scale(1.22); }
+            70%  { transform: translate(-50%,-50%) scale(0.95); }
+            100% { transform: translate(-50%,-50%) scale(1); }
+        }
+        #centre-btn.pulse {
+            animation: centrePulse 0.38s cubic-bezier(0.34,1.56,0.64,1);
+        }
+
+        /* ═══════════════════════════════════════════════════
+           BUFFERING SPINNER
+        ═══════════════════════════════════════════════════ */
+        #spinner {
+            position: absolute;
+            top: 50%; left: 50%;
+            transform: translate(-50%, -50%);
+            width: 44px; height: 44px;
+            border-radius: 50%;
+            border: 3px solid rgba(255,255,255,0.12);
+            border-top-color: var(--accent, #e63946);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.2s;
+            animation: spin 0.85s linear infinite;
+        }
+        #root.state-buffering #spinner { opacity: 1; }
+        #root.state-buffering #centre-btn { opacity: 0; pointer-events: none; }
+        @keyframes spin { to { transform: translate(-50%,-50%) rotate(360deg); } }
+
+        /* ═══════════════════════════════════════════════════
+           CONTROL BAR
+           Auto-hides while playing, shows on hover / paused / ended
+        ═══════════════════════════════════════════════════ */
+        #bar {
+            position: absolute;
+            bottom: 0; left: 0; right: 0;
+            padding: 36px 14px 12px;
+            background: linear-gradient(transparent, rgba(0,0,0,0.88) 52%);
+
+            opacity: 0;
+            transform: translateY(4px);
+            pointer-events: none;
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+        /* Show bar: hover anywhere on player, paused, initial, ended */
+        #player:hover #bar,
+        #root.state-paused  #bar,
+        #root.state-initial #bar,
+        #root.state-ended   #bar {
+            opacity: 1;
+            transform: translateY(0);
+            pointer-events: auto;
+        }
+
+        /* ── Progress track ── */
+        .prog-wrap {
+            width: 100%;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            cursor: pointer;
+            margin-bottom: 8px;
+        }
+        .prog-track {
+            position: relative;
+            width: 100%;
+            height: 3px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 3px;
+            transition: height 0.15s;
+        }
+        .prog-wrap:hover .prog-track { height: 5px; }
+
+        #prog-buf {
+            position: absolute; left:0; top:0; height:100%;
+            background: rgba(255,255,255,0.28);
+            border-radius: 3px;
+            width: 0%;
+        }
+        #prog-fill {
+            position: absolute; left:0; top:0; height:100%;
+            background: var(--accent, #e63946);
+            border-radius: 3px;
+            width: 0%;
+            transition: background 0.3s;
+        }
+        #prog-thumb {
+            position: absolute; top:50%; left:0%;
+            width: 13px; height: 13px;
+            border-radius: 50%;
+            background: #fff;
+            transform: translate(-50%, -50%);
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.15s;
+        }
+        .prog-wrap:hover #prog-thumb { opacity: 1; }
+
+        /* Hover time tooltip */
+        #prog-tip {
+            position: absolute;
+            bottom: 22px;
+            background: rgba(0,0,0,0.78);
+            color: #fff;
+            font-size: 11px;
+            padding: 2px 8px;
+            border-radius: 4px;
+            transform: translateX(-50%);
+            opacity: 0;
+            pointer-events: none;
+            white-space: nowrap;
+            left: 0%;
+        }
+
+        /* ── Bottom row ── */
+        .row {
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        /* Icon buttons */
+        .ibtn {
+            background: none;
+            border: none;
+            color: rgba(255,255,255,0.88);
+            cursor: pointer;
+            width: 34px; height: 34px;
+            border-radius: 7px;
+            display: flex; align-items: center; justify-content: center;
+            transition: color 0.15s, background 0.15s;
+            flex-shrink: 0;
+        }
+        .ibtn:hover { color:#fff; background: rgba(255,255,255,0.1); }
+        .ibtn svg { width:19px; height:19px; }
+
+        /* Time display */
+        #time-display {
+            font-size: 12px;
+            color: rgba(255,255,255,0.82);
+            font-variant-numeric: tabular-nums;
+            letter-spacing: 0.3px;
+            flex: 1;
+            padding-left: 4px;
+        }
+
+        /* Volume */
+        .vol-group { display:flex; align-items:center; gap:4px; }
+        #vol-slider {
+            -webkit-appearance: none;
+            width: 0;
+            height: 3px;
+            background: rgba(255,255,255,0.25);
+            border-radius: 3px;
+            outline: none;
+            cursor: pointer;
+            transition: width 0.22s ease;
+        }
+        .vol-group:hover #vol-slider { width: 64px; }
+        #vol-slider::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            background: #fff;
+            cursor: pointer;
+        }
+        #vol-slider::-moz-range-thumb {
+            width: 11px; height: 11px;
+            border-radius: 50%;
+            background: #fff;
+            border: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body>
+<div id="root" class="state-initial">
+
+    {{-- LAYER 1: YouTube video engine --}}
+    <div id="yt-wrap">
+        <iframe id="yt-engine" src=""
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin">
+        </iframe>
+    </div>
+
+    {{-- LAYER 2: Transparent shield over YouTube --}}
+    <div id="shield"></div>
+
+    {{-- LAYER 3: Our custom player UI --}}
+    <div id="player">
+
+        {{-- Click area (whole player = toggle play) --}}
+        <div id="click-area" onclick="onPlayerClick()"></div>
+
+        {{-- Buffering spinner --}}
+        <div id="spinner"></div>
+
+        {{-- Centre big button (play / pause indicator) --}}
+        <div id="centre-btn" onclick="onCentreClick()">
+            <svg id="centre-ico" viewBox="0 0 24 24">
+                <path d="M8 5v14l11-7z"/>
+            </svg>
+        </div>
+
+        {{-- Control bar --}}
+        <div id="bar">
+
+            {{-- Progress bar --}}
+            <div class="prog-wrap" id="prog"
+                 onmousedown="seekStart(event)"
+                 onmousemove="seekHover(event)"
+                 onmouseleave="seekLeave()">
+                <div class="prog-track">
+                    <div id="prog-buf"></div>
+                    <div id="prog-fill"></div>
+                    <div id="prog-thumb"></div>
+                    <div id="prog-tip">0:00</div>
+                </div>
+            </div>
+
+            {{-- Button row --}}
+            <div class="row">
+
+                {{-- Play / Pause --}}
+                <button class="ibtn" id="play-btn" onclick="togglePlay(event)" title="Play/Pause">
+                    <svg id="play-ico" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M8 5v14l11-7z"/>
+                    </svg>
+                </button>
+
+                {{-- Skip back 10s --}}
+                <button class="ibtn" onclick="skip(event,-10)" title="-10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+                        <text x="9" y="16" font-size="5.5" fill="currentColor" stroke="none"
+                              font-family="system-ui" font-weight="700" text-anchor="middle">10</text>
+                    </svg>
+                </button>
+
+                {{-- Skip forward 10s --}}
+                <button class="ibtn" onclick="skip(event,10)" title="+10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+                         stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-.49-4.95"/>
+                        <text x="11.5" y="16" font-size="5.5" fill="currentColor" stroke="none"
+                              font-family="system-ui" font-weight="700" text-anchor="middle">10</text>
+                    </svg>
+                </button>
+
+                {{-- Time --}}
+                <span id="time-display">0:00 / 0:00</span>
+
+                {{-- Volume --}}
+                <div class="vol-group" onclick="event.stopPropagation()">
+                    <button class="ibtn" id="mute-btn" onclick="toggleMute(event)" title="Mute">
+                        <svg id="vol-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                             stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path id="vol-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                    </button>
+                    <input type="range" id="vol-slider" min="0" max="100" value="80"
+                           oninput="setVolume(this.value)"
+                           onclick="event.stopPropagation()"/>
+                </div>
+
+                {{-- Fullscreen --}}
+                <button class="ibtn" id="fs-btn" onclick="toggleFullscreen(event)" title="Fullscreen">
+                    <svg id="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+                         stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                        <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                        <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                    </svg>
+                </button>
+
+            </div>{{-- .row --}}
+        </div>{{-- #bar --}}
+    </div>{{-- #player --}}
+</div>{{-- #root --}}
+
+<script>
+// ── Config from Laravel ────────────────────────────────────────────────
+const VIDEO_ID = @json($videoId);
+const AUTOPLAY = @json($autoplay);
+const LOOP     = @json($loop);
+const ORIGIN   = '{{ url('/') }}';
+const ACCENT   = new URLSearchParams(location.search).get('accent') || '#e63946';
+document.documentElement.style.setProperty('--accent', ACCENT);
+
+const root = document.getElementById('root');
+
+// ── Debug broadcaster ──────────────────────────────────────────────────
+function dbg(level, msg, data) {
+    window.parent.postMessage({ _kp_debug:true, level, msg, data:data||null, ts:Date.now() }, '*');
+}
+dbg('info', 'embed loaded', { VIDEO_ID, AUTOPLAY, LOOP, ORIGIN });
+
+// ── Build YouTube iframe src ───────────────────────────────────────────
+// controls=0  → no YouTube UI whatsoever
+// All origin params → prevents Error 152
+const ytParams = new URLSearchParams({
+    modestbranding: 1, showinfo: 0, rel: 0,
+    controls: 0, disablekb: 1, iv_load_policy: 3,
+    fs: 0, cc_load_policy: 0, playsinline: 1,
+    enablejsapi: 1,
+    autoplay:  AUTOPLAY,
+    loop:      LOOP,
+    playlist:  LOOP === '1' ? VIDEO_ID : '',
+    origin:          ORIGIN,
+    widget_referrer: ORIGIN,
+    aoriginsup: 1,
+    aorigins:   ORIGIN,
+    gporigin:   ORIGIN + '/',
+});
+const YT_SRC = `https://www.youtube.com/embed/${VIDEO_ID}?${ytParams}`;
+const ytFrame = document.getElementById('yt-engine');
+ytFrame.src = YT_SRC;
+ytFrame.addEventListener('load', () => dbg('success', 'YT iframe loaded'));
+dbg('info', 'YT src set', { src: YT_SRC });
+
+// ── Player state ───────────────────────────────────────────────────────
+let isPlaying  = false;
+let isMuted    = false;
+let isFs       = false;
+let curTime    = 0;
+let duration   = 0;
+let hideTimer  = null;
+let flashTimer = null;
+
+// ── State machine ──────────────────────────────────────────────────────
+// States: initial | playing | paused | buffering | ended
+function setState(s) {
+    root.className = 'state-' + s;
+}
+
+// ── Centre button: icon + pulse animation ─────────────────────────────
+const centreIco = document.getElementById('centre-ico');
+const centreBtn = document.getElementById('centre-btn');
+
+const ICO_PLAY  = '<path d="M8 5v14l11-7z"/>';
+const ICO_PAUSE = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+
+function flashCentre(icon) {
+    // Update icon
+    centreIco.innerHTML = icon === 'pause' ? ICO_PAUSE : ICO_PLAY;
+
+    // Pulse animation
+    centreBtn.classList.remove('pulse');
+    void centreBtn.offsetWidth; // force reflow to restart animation
+    centreBtn.classList.add('pulse');
+    centreBtn.addEventListener('animationend', () => centreBtn.classList.remove('pulse'), { once: true });
+
+    // When playing: show centre btn briefly then hide
+    if (icon === 'pause') {
+        // This is the "play clicked → now playing" flash
+        clearTimeout(flashTimer);
+        root.classList.add('centre-flash');
+        flashTimer = setTimeout(() => root.classList.remove('centre-flash'), 700);
+    }
+}
+
+// ── Control bar play/pause icon ────────────────────────────────────────
+const playIco = document.getElementById('play-ico');
+function updatePlayIcon() {
+    playIco.innerHTML = isPlaying ? ICO_PAUSE : ICO_PLAY;
+}
+
+// ── Click anywhere on player → toggle play ────────────────────────────
+function onPlayerClick() {
+    togglePlay(null);
+}
+// Centre button click (also toggles)
+function onCentreClick() {
+    togglePlay(null);
+}
+
+// ── Toggle play/pause ─────────────────────────────────────────────────
+function togglePlay(e) {
+    if (e) e.stopPropagation();
+    if (isPlaying) {
+        ytSend('pauseVideo');
+        // Don't wait for YT event — update UI immediately
+        isPlaying = false;
+        setState('paused');
+        flashCentre('play');
+        updatePlayIcon();
+    } else {
+        ytSend('playVideo');
+        isPlaying = true;
+        setState('playing');
+        flashCentre('pause');
+        updatePlayIcon();
+        scheduleHide();
+    }
+}
+
+// ── Auto-hide controls while playing ──────────────────────────────────
+function scheduleHide() {
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(() => {
+        // Controls hide via CSS (player:hover keeps them visible)
+    }, 2500);
+}
+
+// ── Skip ──────────────────────────────────────────────────────────────
+function skip(e, sec) {
+    if (e) e.stopPropagation();
+    const t = Math.max(0, curTime + sec);
+    ytSend('seekTo', [t, true]);
+    curTime = t;
+    updateProgress();
+}
+
+// ── Volume ────────────────────────────────────────────────────────────
+function toggleMute(e) {
+    if (e) e.stopPropagation();
+    if (isMuted) { ytSend('unMute'); isMuted = false; }
+    else         { ytSend('mute');   isMuted = true;  }
+    updateVolIcon();
+}
+function setVolume(v) {
+    ytSend('setVolume', [+v]);
+    if (+v === 0) { isMuted = true; ytSend('mute'); }
+    else          { isMuted = false; ytSend('unMute'); }
+    updateVolIcon();
+}
+function updateVolIcon() {
+    const waves = document.getElementById('vol-waves');
+    if (isMuted) {
+        waves.setAttribute('d', 'M23 9l-6 6M17 9l6 6');
+        document.getElementById('vol-ico').style.opacity = '0.45';
+    } else {
+        waves.setAttribute('d', 'M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14');
+        document.getElementById('vol-ico').style.opacity = '1';
+    }
+}
+
+// ── Fullscreen ────────────────────────────────────────────────────────
+// We fullscreen #root — it contains BOTH the YouTube iframe AND our UI,
+// so both are visible in fullscreen. No dark screen.
+function toggleFullscreen(e) {
+    if (e) e.stopPropagation();
+    const el = document.getElementById('root');
+    if (!document.fullscreenElement) {
+        (el.requestFullscreen || el.webkitRequestFullscreen).call(el)
+            .catch(err => dbg('warn', 'Fullscreen failed', { err: err.message }));
+    } else {
+        document.exitFullscreen();
+    }
+}
+document.addEventListener('fullscreenchange', () => {
+    isFs = !!document.fullscreenElement;
+    const ico = document.getElementById('fs-ico');
+    ico.innerHTML = isFs
+        ? `<path d="M8 3v3a2 2 0 0 1-2 2H3"/>
+           <path d="M21 8h-3a2 2 0 0 1-2-2V3"/>
+           <path d="M3 16h3a2 2 0 0 0 2 2v3"/>
+           <path d="M16 21v-3a2 2 0 0 0-2-2h-3"/>`
+        : `<path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+           <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+           <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+           <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>`;
+});
+
+// ── Progress bar ──────────────────────────────────────────────────────
+let seeking = false;
+function seekStart(e) {
+    if (!duration) return;
+    e.stopPropagation();
+    seeking = true;
+    doSeek(e);
+    const onMove = ev => { if (seeking) doSeek(ev); };
+    const onUp   = ()  => {
+        seeking = false;
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup',   onUp);
+    };
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup',   onUp);
+}
+function doSeek(e) {
+    const bar  = document.getElementById('prog');
+    const rect = bar.getBoundingClientRect();
+    const r    = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const t    = r * duration;
+    ytSend('seekTo', [t, true]);
+    curTime = t;
+    updateProgress();
+}
+function seekHover(e) {
+    if (!duration) return;
+    const bar  = document.getElementById('prog');
+    const rect = bar.getBoundingClientRect();
+    const r    = Math.min(1, Math.max(0, (e.clientX - rect.left) / rect.width));
+    const tip  = document.getElementById('prog-tip');
+    tip.textContent = fmt(r * duration);
+    tip.style.left  = (r * 100) + '%';
+    tip.style.opacity = '1';
+}
+function seekLeave() {
+    document.getElementById('prog-tip').style.opacity = '0';
+}
+
+// ── Update progress bar & time ─────────────────────────────────────────
+function updateProgress() {
+    const pct = duration > 0 ? (curTime / duration) * 100 : 0;
+    document.getElementById('prog-fill').style.width  = pct + '%';
+    document.getElementById('prog-thumb').style.left  = pct + '%';
+    document.getElementById('time-display').textContent = fmt(curTime) + ' / ' + fmt(duration);
+}
+
+// ── postMessage: outer shell commands → YouTube ───────────────────────
+window.addEventListener('message', function(e) {
+    const d = e.data;
+
+    // Commands from killerplayer.blade shell
+    if (d && typeof d === 'object' && !d._kp_debug) {
+        if (d.cmd === 'play')   { ytSend('playVideo');             isPlaying=true;  setState('playing'); updatePlayIcon(); }
+        if (d.cmd === 'pause')  { ytSend('pauseVideo');            isPlaying=false; setState('paused');  updatePlayIcon(); }
+        if (d.cmd === 'mute')   { ytSend('mute');   isMuted=true;  updateVolIcon(); }
+        if (d.cmd === 'unmute') { ytSend('unMute'); isMuted=false; updateVolIcon(); }
+        if (d.cmd === 'volume') {
+            ytSend('setVolume', [+d.value]);
+            document.getElementById('vol-slider').value = d.value;
+        }
+        if (d.cmd === 'seek')   { ytSend('seekTo',[d.value,true]); curTime=d.value; updateProgress(); }
+        if (d.cmd === 'accent') { document.documentElement.style.setProperty('--accent', d.value); }
+        return;
+    }
+
+    // Events from YouTube iframe → update our UI + relay to outer shell
+    if (typeof e.data === 'string') {
+        try {
+            const yt = JSON.parse(e.data);
+            if (!yt.event) return;
+
+            // ── onReady ──
+            if (yt.event === 'onReady') {
+                dbg('success', 'YouTube engine ready ✓');
+                if (AUTOPLAY === '1') {
+                    ytSend('playVideo');
+                    isPlaying = true;
+                    setState('playing');
+                    flashCentre('pause');
+                    updatePlayIcon();
+                    scheduleHide();
+                }
+                window.parent.postMessage(yt, '*');
+            }
+
+            // ── onStateChange ──
+            if (yt.event === 'onStateChange') {
+                const s = yt.info;
+                // -1=unstarted  0=ended  1=playing  2=paused  3=buffering  5=cued
+                if (s === 1) {
+                    isPlaying = true;
+                    setState('playing');
+                    updatePlayIcon();
+                    scheduleHide();
+                }
+                if (s === 2) {
+                    isPlaying = false;
+                    setState('paused');
+                    centreIco.innerHTML = ICO_PLAY;
+                    updatePlayIcon();
+                }
+                if (s === 0) {
+                    isPlaying = false;
+                    setState('ended');
+                    centreIco.innerHTML = ICO_PLAY;
+                    updatePlayIcon();
+                    if (LOOP === '1') { ytSend('playVideo'); isPlaying=true; setState('playing'); scheduleHide(); }
+                }
+                if (s === 3) setState('buffering');
+                if (s === -1) setState('initial');
+
+                const labels = {'-1':'unstarted','0':'ended','1':'playing','2':'paused','3':'buffering','5':'cued'};
+                dbg('yt', `state → ${labels[s]||s}`);
+                window.parent.postMessage(yt, '*');
+            }
+
+            // ── onError ──
+            if (yt.event === 'onError') {
+                const errs = {
+                    2:'Invalid videoId', 100:'Not found/private',
+                    101:'Embedding disabled', 150:'Embedding disabled',
+                    152:'Origin rejected — check APP_URL in .env',
+                    153:'Player config error',
+                };
+                dbg('error', `YouTube error ${yt.data}: ${errs[yt.data]||'unknown'}`, {code:yt.data});
+                window.parent.postMessage(yt, '*');
+            }
+
+            // ── infoDelivery — time + buffer updates ──
+            if (yt.event === 'infoDelivery' && yt.info) {
+                if (yt.info.currentTime != null) curTime  = yt.info.currentTime;
+                if (yt.info.duration    != null) duration = yt.info.duration;
+                if (yt.info.videoLoadedFraction != null)
+                    document.getElementById('prog-buf').style.width = (yt.info.videoLoadedFraction * 100) + '%';
+                updateProgress();
+                window.parent.postMessage(yt, '*');
+            }
+        } catch (_) {}
+    }
+});
+
+// ── Send command to YouTube iframe ────────────────────────────────────
+function ytSend(func, args) {
+    const eng = document.getElementById('yt-engine');
+    if (eng?.contentWindow)
+        eng.contentWindow.postMessage(JSON.stringify({ event:'command', func, args:args||[] }), '*');
+}
+
+// ── Format seconds as m:ss ────────────────────────────────────────────
+function fmt(s) {
+    s = Math.floor(s || 0);
+    return Math.floor(s / 60) + ':' + String(s % 60).padStart(2, '0');
+}
+</script>
+</body>
+</html>

@@ -5,6 +5,8 @@ use App\Http\Controllers\Web\TvController;
 use App\Http\Controllers\Web\IframeController;
 use App\Http\Controllers\Web\DaddyController;
 use App\Http\Controllers\Web\StreamProxyController;
+use App\Http\Controllers\Web\YoutubeController;
+use App\Http\Controllers\Web\YtController;
 
 
 Route::view('/home', 'welcome');
@@ -22,11 +24,27 @@ Route::controller(TvController::class)->group(function () {
     Route::get('/allchannel', 'allchannel')->name('allchannel');
 });
 
-Route::controller(DaddyController::class)->group(function () {
-    // Main View Route
-    Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
-    
-    // Proxy Route (Must match the controller method name)
-    Route::get('/stream/proxy/{channelId}', 'proxyStream')->name('stream.proxy');
+Route::middleware(['web'])->group(function () {
+    Route::controller(DaddyController::class)->group(function () {
+        Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
+    });
 });
+
 require __DIR__.'/auth.php';
+
+
+
+
+Route::controller(YoutubeController::class)->group(function () {
+    Route::get('/killerplayer',       'killer')->name('killerplayer');
+    Route::get('/killerplayer/embed', 'embed')->name('killerplayer.embed');
+});
+
+
+Route::controller(YtController::class)->group(function () {
+    // The "Engine" Route (The page inside the iframe)
+    Route::get('yt/player/{id}',  'player')->name('player');
+    
+    // The Demo Page
+    Route::get('yt/killerplayer', 'killer')->name('killerplayer');
+});
