@@ -139,22 +139,17 @@
             opacity:0; transform:translateY(4px); pointer-events:none;
             transition:opacity .3s ease, transform .3s ease;
         }
-        /* Normal (non-fullscreen): show on hover or non-playing states */
+        /* Default: show bar on hover and non-playing states */
         #player:hover #bar,
         #root.state-paused  #bar,
         #root.state-initial #bar,
         #root.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
 
-        /* Fullscreen playing: ONLY show when controls-visible (mouse moved recently) */
-        #root.fs-playing #player:hover #bar { opacity:0; transform:translateY(4px); pointer-events:none; }
-        #root.fs-playing.controls-visible #bar,
-        #root.fs-playing.state-paused  #bar,
-        #root.fs-playing.state-initial #bar,
-        #root.fs-playing.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
-
-        /* Hide cursor in fullscreen when controls are hidden */
-        #root.fs-playing:not(.controls-visible) { cursor:none; }
-        #root.fs-playing:not(.controls-visible) #click-area { cursor:none; }
+        /* Fullscreen playing mode — bar and cursor controlled by JS classes only */
+        #root.fs-hide #bar            { opacity:0 !important; transform:translateY(4px) !important; pointer-events:none !important; }
+        #root.fs-show #bar            { opacity:1 !important; transform:translateY(0)   !important; pointer-events:auto  !important; }
+        #root.fs-hide                 { cursor:none; }
+        #root.fs-hide *               { cursor:none; }
 
         /* ── Progress ── */
         .prog-wrap { width:100%; height:20px; display:flex; align-items:center;
@@ -513,7 +508,11 @@ const ICO_PLAY   = '<path d="M8 5v14l11-7z"/>';
 const ICO_PAUSE  = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
 const ICO_REPLAY = '<path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>';
 
-function setState(s) { root.className = 'state-' + s + (root.classList.contains('controls-visible') ? ' controls-visible' : ''); }
+function setState(s) {
+    // Preserve ALL fs-* classes — fullscreen system manages those separately
+    const fsClasses = [...root.classList].filter(cl => cl.startsWith('fs-'));
+    root.className = ['state-' + s, ...fsClasses].join(' ');
+}
 function updatePlayIcon() { playIco.innerHTML = isPlaying ? ICO_PAUSE : ICO_PLAY; }
 function flashCentre(icon) {
     centreIco.innerHTML = icon === 'pause' ? ICO_PAUSE : icon === 'replay' ? ICO_REPLAY : ICO_PLAY;
@@ -525,44 +524,52 @@ function flashCentre(icon) {
     }
 }
 
-// ── Fullscreen cursor + controls auto-hide ────────────────────────────
-// In fullscreen while playing: hide controls + cursor after 3s idle.
-// Any mouse move / click wakes them up again.
-// Uses class "fs-playing" on root to activate the suppression CSS rules.
+// ── Fullscreen auto-hide ──────────────────────────────────────────────
+// Simple two-class system on #root:
+//   fs-show  → controls + cursor visible
+//   fs-hide  → controls hidden, cursor none
+// Only active when in fullscreen AND playing.
+// Any interaction (move/click/touch) → show for 3s then re-hide.
 
-function updateFsClass() {
-    if (document.fullscreenElement && isPlaying) {
-        root.classList.add('fs-playing');
-    } else {
-        root.classList.remove('fs-playing');
-        root.classList.remove('controls-visible');
-        clearTimeout(cursorTimer);
+function fsShow() {
+    root.classList.remove('fs-hide');
+    root.classList.add('fs-show');
+    clearTimeout(cursorTimer);
+    if (isPlaying && document.fullscreenElement) {
+        cursorTimer = setTimeout(fsHide, 3000);
     }
 }
 
+function fsHide() {
+    clearTimeout(cursorTimer);
+    root.classList.remove('fs-show');
+    root.classList.add('fs-hide');
+}
+
+function fsClear() {
+    clearTimeout(cursorTimer);
+    root.classList.remove('fs-show', 'fs-hide');
+}
+
+// Called on every interaction
 function wakeControls() {
     if (!document.fullscreenElement) return;
-    root.classList.add('controls-visible');
-    clearTimeout(cursorTimer);
-    // Hide again after 3s if still playing
-    cursorTimer = setTimeout(() => {
-        if (isPlaying && document.fullscreenElement) {
-            root.classList.remove('controls-visible');
-        }
-    }, 3000);
+    fsShow(); // show immediately, restart 3s timer
 }
 
 document.addEventListener('mousemove',  wakeControls);
 document.addEventListener('mousedown',  wakeControls);
 document.addEventListener('touchstart', wakeControls, { passive:true });
+document.addEventListener('keydown',    wakeControls);
 
 document.addEventListener('fullscreenchange', () => {
-    updateFsClass();
     if (document.fullscreenElement) {
-        // Just entered fullscreen — show controls briefly then hide
-        wakeControls();
+        // Entered fullscreen — show controls then auto-hide after 3s
+        fsShow();
+    } else {
+        // Exited fullscreen — remove all fs classes, normal mode
+        fsClear();
     }
-    // Update icon
     document.getElementById('fs-ico').innerHTML = document.fullscreenElement
         ? `<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 0 2 2v3"/><path d="M16 21v-3a2 2 0 0 0-2-2h-3"/>`
         : `<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>`;
@@ -649,14 +656,14 @@ function togglePlay(e) {
         isPlaying = false; setState('paused');
         flashCentre('play'); updatePlayIcon(); stopRaf();
         pauseEndVideo();
-        updateFsClass();
+        // In fullscreen: keep controls visible while paused — cancel hide timer
+        if (document.fullscreenElement) { clearTimeout(cursorTimer); root.classList.remove('fs-hide'); root.classList.add('fs-show'); }
     } else {
         ytSend('playVideo');
         isPlaying = true; setState('playing');
         flashCentre('pause'); updatePlayIcon();
         anchorTime(curTime); startRaf();
         resumeEndVideo();
-        updateFsClass();
     }
 }
 function replayVideo() {
