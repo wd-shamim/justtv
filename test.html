@@ -1,910 +1,805 @@
-<body class="bg-[#0d0d0d] text-[#f1f1f1] min-h-screen flex flex-col items-center px-5 py-10 theme-wistia">
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8"/>
+    <meta name="referrer" content="strict-origin-when-cross-origin"/>
+    <title>KP Embed</title>
+    <style>
+        *, *::before, *::after { margin:0; padding:0; box-sizing:border-box; }
 
-    
-    <header class="text-center mb-8">
-        <h1 class="font-bebas text-[clamp(2.4rem,7vw,4rem)] tracking-[4px] leading-none" style="color:var(--accent)">
-            KillerPlayer
-        </h1>
-        <p class="text-[#555] text-xs mt-1.5 tracking-widest uppercase">No Ads · No Logo · No Limits</p>
-    </header>
+        html, body { width:100%; height:100%; background:#000; overflow:hidden;
+            font-family:system-ui,-apple-system,sans-serif; user-select:none; }
 
-    
-    <div class="flex gap-2 w-full max-w-[720px] mb-5">
-        <input type="text" id="ytUrl" placeholder="Paste YouTube URL…  e.g. https://youtu.be/tgbNymZ7vqY" class="flex-1 bg-[#1f1f1f] border border-[#2a2a2a] rounded-lg text-[#f1f1f1] text-sm px-4 py-3 outline-none transition-colors placeholder:text-[#444]">
-        <button onclick="loadVideo()" class="font-bebas tracking-[2px] text-base px-6 py-3 rounded-lg text-white whitespace-nowrap hover:opacity-90 active:scale-95 transition-all" style="background:var(--accent)">LOAD</button>
+        #root { position:absolute; inset:0; background:#000; }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 1 — YouTube iframe (original structure untouched)
+           200%/-50% crop removes YT chrome. overflow:hidden clips
+           end-screen cards. pointer-events:none = no YT clicks.
+        ══════════════════════════════════════════════════════ */
+        #yt-wrap { position:absolute; inset:0; overflow:hidden; z-index:1; }
+        #yt-engine {
+            position:absolute; width:100%; height:200%; top:-50%; left:0;
+            border:none; pointer-events:none;
+        }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 2a — Pause cover
+           Shown when paused/initial. Hidden while playing.
+           • $pauseImg = true  → custom image background
+           • $pauseImg = false → transparent (frozen video shows through)
+        ══════════════════════════════════════════════════════ */
+        #pause-cover {
+            position:absolute; inset:0; z-index:2; pointer-events:none;
+            opacity:1; transition:opacity 0.25s ease;
+            background:transparent center/cover no-repeat;
+        }
+        #root.state-playing   #pause-cover,
+        #root.state-buffering #pause-cover { opacity:0; }
+        #root.state-initial   #pause-cover,
+        #root.state-paused    #pause-cover  { opacity:1; }
+        /* When ended: pause-cover hides so end-screen can show */
+        #root.state-ended     #pause-cover  { opacity:0; }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 2b — End screen
+           Shown when video ends (or near end if $endScreen = true).
+           Hidden otherwise.
+           • $endScreen = true  → custom video or image
+           • $endScreen = false → transparent; replay button shows over video
+        ══════════════════════════════════════════════════════ */
+        /* End screen overlays the main video when active.
+           z-index 2 = above YT iframe, below our UI controls.
+           Opacity is driven entirely by JS — CSS class not used. */
+        #end-screen {
+            position:absolute; inset:0; z-index:2; pointer-events:none;
+            opacity:0; transition:opacity 0.6s ease;
+            background:#000 center/cover no-repeat;
+            overflow:hidden;
+        }
+        #end-screen video {
+            position:absolute; inset:0; width:100%; height:100%;
+            object-fit:cover; display:block;
+        }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 3 — Shield (transparent click blocker)
+        ══════════════════════════════════════════════════════ */
+        #shield { position:absolute; inset:0; z-index:4; pointer-events:none; }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 4 — Branding overlay
+           Shown during playback only ($branding = true).
+           Logo or text in bottom-right corner.
+        ══════════════════════════════════════════════════════ */
+        #branding {
+            position:absolute; bottom:52px; right:14px; z-index:5;
+            display:flex; align-items:center; gap:7px;
+            opacity:0; pointer-events:none;
+            transition:opacity 0.4s ease;
+        }
+        #root.state-playing #branding { opacity:1; }
+        #branding img {
+            height:28px; max-width:110px;
+            object-fit:contain; border-radius:4px;
+            filter:drop-shadow(0 1px 4px rgba(0,0,0,0.7));
+        }
+        #branding span {
+            font-size:13px; font-weight:600; color:#fff; letter-spacing:0.2px;
+            text-shadow:0 1px 4px rgba(0,0,0,0.8);
+        }
+
+        /* ══════════════════════════════════════════════════════
+           LAYER 5 — Our UI
+        ══════════════════════════════════════════════════════ */
+        #player { position:absolute; inset:0; z-index:6; }
+        #click-area { position:absolute; inset:0; cursor:pointer; }
+
+        /* Centre button */
+        #centre-btn {
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%) scale(1);
+            width:72px; height:72px; border-radius:50%;
+            background:rgba(0,0,0,0.62);
+            backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
+            border:2px solid rgba(255,255,255,0.18);
+            display:flex; align-items:center; justify-content:center;
+            opacity:0; pointer-events:none;
+            transition:opacity .28s ease, transform .28s ease, background .18s;
+            cursor:pointer;
+        }
+        #centre-btn svg { width:30px; height:30px; fill:#fff; transition:transform .15s; }
+        #centre-btn:hover { background:rgba(0,0,0,0.82); }
+        #centre-btn:hover svg { transform:scale(1.08); }
+        #root.state-initial #centre-btn,
+        #root.state-paused  #centre-btn,
+        #root.state-ended   #centre-btn { opacity:1; pointer-events:auto; }
+        #root.state-playing #centre-btn { opacity:0; transform:translate(-50%,-50%) scale(0.88); pointer-events:none; }
+        #root.state-playing.centre-flash #centre-btn { opacity:1; transform:translate(-50%,-50%) scale(1); }
+        @keyframes centrePulse {
+            0%  { transform:translate(-50%,-50%) scale(1); }
+            35% { transform:translate(-50%,-50%) scale(1.22); }
+            70% { transform:translate(-50%,-50%) scale(0.95); }
+            100%{ transform:translate(-50%,-50%) scale(1); }
+        }
+        #centre-btn.pulse { animation:centrePulse .38s cubic-bezier(.34,1.56,.64,1); }
+
+        /* Spinner */
+        #spinner {
+            position:absolute; top:50%; left:50%;
+            transform:translate(-50%,-50%);
+            width:44px; height:44px; border-radius:50%;
+            border:3px solid rgba(255,255,255,0.12);
+            border-top-color:var(--accent,#e63946);
+            opacity:0; pointer-events:none;
+            transition:opacity .2s; animation:spin .85s linear infinite;
+        }
+        #root.state-buffering #spinner { opacity:1; }
+        #root.state-buffering #centre-btn { opacity:0; pointer-events:none; }
+        @keyframes spin { to { transform:translate(-50%,-50%) rotate(360deg); } }
+
+        /* Control bar */
+        #bar {
+            position:absolute; bottom:0; left:0; right:0;
+            padding:36px 14px 12px;
+            background:linear-gradient(transparent,rgba(0,0,0,.88) 52%);
+            opacity:0; transform:translateY(4px); pointer-events:none;
+            transition:opacity .3s ease, transform .3s ease;
+        }
+        #player:hover #bar,
+        #root.state-paused  #bar,
+        #root.state-initial #bar,
+        #root.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
+
+        /* Progress */
+        .prog-wrap {
+            width:100%; height:20px; display:flex; align-items:center;
+            cursor:pointer; margin-bottom:8px; position:relative;
+        }
+        .prog-track {
+            position:relative; width:100%; height:3px;
+            background:rgba(255,255,255,.2); border-radius:3px;
+            transition:height .15s; overflow:visible;
+        }
+        .prog-wrap:hover .prog-track { height:5px; }
+        #prog-buf  { position:absolute; left:0; top:0; height:100%; background:rgba(255,255,255,.28); border-radius:3px; width:0%; }
+        #prog-fill { position:absolute; left:0; top:0; height:100%; background:var(--accent,#e63946); border-radius:3px; width:0%; }
+        #prog-thumb {
+            position:absolute; top:50%; left:0%;
+            width:13px; height:13px; border-radius:50%; background:#fff;
+            transform:translate(-50%,-50%); opacity:0; pointer-events:none;
+            transition:opacity .15s;
+        }
+        .prog-wrap:hover #prog-thumb { opacity:1; }
+        #prog-tip {
+            position:absolute; bottom:22px;
+            background:rgba(0,0,0,.78); color:#fff;
+            font-size:11px; padding:2px 8px; border-radius:4px;
+            transform:translateX(-50%); opacity:0; pointer-events:none;
+            white-space:nowrap; left:0%;
+        }
+
+        /* Row */
+        .row { display:flex; align-items:center; gap:4px; }
+        .ibtn {
+            background:none; border:none; color:rgba(255,255,255,.88);
+            cursor:pointer; width:34px; height:34px; border-radius:7px;
+            display:flex; align-items:center; justify-content:center;
+            transition:color .15s, background .15s; flex-shrink:0;
+        }
+        .ibtn:hover { color:#fff; background:rgba(255,255,255,.1); }
+        .ibtn svg { width:19px; height:19px; }
+        #time-display {
+            font-size:12px; color:rgba(255,255,255,.82);
+            font-variant-numeric:tabular-nums; letter-spacing:.3px;
+            flex:1; padding-left:4px;
+        }
+        .vol-group { display:flex; align-items:center; gap:4px; }
+        #vol-slider {
+            -webkit-appearance:none; width:0; height:3px;
+            background:rgba(255,255,255,.25); border-radius:3px;
+            outline:none; cursor:pointer; transition:width .22s ease;
+        }
+        .vol-group:hover #vol-slider { width:64px; }
+        #vol-slider::-webkit-slider-thumb {
+            -webkit-appearance:none; width:11px; height:11px;
+            border-radius:50%; background:#fff; cursor:pointer;
+        }
+        #vol-slider::-moz-range-thumb {
+            width:11px; height:11px; border-radius:50%;
+            background:#fff; border:none; cursor:pointer;
+        }
+    </style>
+</head>
+<body>
+<div id="root" class="state-initial" data-end-screen="{{ $endScreen ? '1' : '0' }}">
+
+    {{-- LAYER 1: YouTube — original structure untouched --}}
+    <div id="yt-wrap">
+        <iframe id="yt-engine" src=""
+            allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
+            referrerpolicy="strict-origin-when-cross-origin">
+        </iframe>
     </div>
 
-    
-    <div class="flex gap-2 flex-wrap justify-center max-w-[720px] w-full mb-6">
-                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] active" data-theme="theme-wistia" data-color="#e63946" onclick="setTheme(this)">
-            Wistia
-        </button>
-                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-vimeo" data-color="#1ab7ea" onclick="setTheme(this)">
-            Vimeo
-        </button>
-                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-viddler" data-color="#f4a015" onclick="setTheme(this)">
-            Viddler
-        </button>
-                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-vzaar" data-color="#7c3aed" onclick="setTheme(this)">
-            Vzaar
-        </button>
-                <button class="theme-btn bg-[#1f1f1f] border-2 border-transparent rounded-full text-[#555] text-xs font-medium px-4 py-1.5 tracking-wide transition-all hover:text-white hover:border-[#3a3a3a] " data-theme="theme-tara" data-color="#10b981" onclick="setTheme(this)">
-            Tara
-        </button>
-            </div>
+    {{-- LAYER 2a: Pause cover --}}
+    {{-- $pauseImg = true  → custom image shown on pause --}}
+    {{-- $pauseImg = false → transparent; frozen video frame shows through --}}
+    <div id="pause-cover"
+        @if($pauseImg && !empty($pauseVideoImg))
+            style="background-image: url('{{ $pauseVideoImg }}');"
+        @endif
+    ></div>
 
-    
-    <div class="player-shell w-full max-w-[720px] bg-black relative" id="playerShell" style="border-radius:16px; box-shadow:0 28px 80px rgba(0,0,0,.7);">
-
-        
-        <div class="relative bg-black" style="padding-top:56.25%; border-radius:inherit; overflow:hidden;">
-
-            
-            <div id="placeholder" class="absolute inset-0 z-10 flex flex-col items-center justify-center gap-4 bg-[#080808] transition-opacity duration-300 opacity-0 pointer-events-none">
-                <svg width="54" height="54" viewBox="0 0 24 24" fill="none" class="opacity-20">
-                    <circle cx="12" cy="12" r="10" stroke="#fff" stroke-width="1.2"></circle>
-                    <path d="M10 8l6 4-6 4V8z" fill="#fff"></path>
-                </svg>
-                <span class="text-[#444] text-sm tracking-wide">Paste a YouTube URL above and hit LOAD</span>
-            </div>
-
-            
-            <div id="watermark" class="absolute top-3 right-3.5 z-20 rounded-md px-3 py-1 font-bebas text-sm tracking-[2px] text-white/65 pointer-events-none opacity-0 transition-opacity" style="background:rgba(0,0,0,.52); backdrop-filter:blur(8px)">MY BRAND</div>
-
-            
-            <div id="iframeSlot" class="absolute inset-0"><iframe src="http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946" allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen" allowfullscreen="" referrerpolicy="strict-origin-when-cross-origin" style="position: absolute; inset: 0px; width: 100%; height: 100%; border: none;"></iframe></div>
-        </div>
+    {{-- LAYER 2b: End screen --}}
+    {{-- $endScreen = true  → custom video (priority) or image shown at end --}}
+    {{-- $endScreen = false → transparent; video stays visible, replay button shows --}}
+    <div id="end-screen"
+        @if($endScreen)
+            @if(empty($endScreenVideo) && !empty($endScreenImg))
+                style="background-image: url('{{ $endScreenImg }}');"
+            @endif
+        @endif
+    >
+        @if($endScreen && !empty($endScreenVideo))
+            <video id="end-video" src="{{ $endScreenVideo }}" muted playsinline preload="auto"></video>
+        @endif
     </div>
 
-    
-    <div class="w-full max-w-[720px] mt-5 bg-[#161616] rounded-xl p-5 border border-[#222]">
-        <h3 class="font-bebas tracking-[2.5px] text-[#555] text-sm mb-4">Player Settings</h3>
-        <div class="grid grid-cols-2 gap-4 mb-4">
-            <div>
-                <label class="block text-[#555] text-[11px] uppercase tracking-wide mb-1.5">Accent Color</label>
-                <input type="color" id="colorPick" value="#e63946" oninput="setAccent(this.value)" class="w-full h-9 rounded-md border border-[#2a2a2a] bg-[#1f1f1f] cursor-pointer p-0.5">
-            </div>
-            <div>
-                <label class="block text-[#555] text-[11px] uppercase tracking-wide mb-1.5">Watermark Text</label>
-                <input type="text" id="wmInput" placeholder="MY BRAND" oninput="updateWM(this.value)" class="w-full bg-[#1f1f1f] border border-[#2a2a2a] rounded-md text-[#f1f1f1] text-sm px-3 py-2 outline-none placeholder:text-[#444]">
-            </div>
+    {{-- LAYER 3: Shield --}}
+    <div id="shield"></div>
+
+    {{-- LAYER 4: Branding overlay --}}
+    {{-- $branding = true → shows logo (priority) or name during playback --}}
+    {{-- $branding = false → nothing shown --}}
+    @if($branding)
+    <div id="branding">
+        @if(!empty($brandingLogo))
+            <img src="{{ $brandingLogo }}" alt="{{ $brandingName ?? '' }}"/>
+        @elseif(!empty($brandingName))
+            <span>{{ $brandingName }}</span>
+        @endif
+    </div>
+    @endif
+
+    {{-- LAYER 5: Our UI --}}
+    <div id="player">
+        <div id="click-area" onclick="onPlayerClick()"></div>
+        <div id="spinner"></div>
+
+        <div id="centre-btn" onclick="onCentreClick()">
+            <svg id="centre-ico" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
         </div>
 
-                        <div class="flex items-center justify-between py-2.5 border-b border-[#1c1c1c]">
-            <span class="text-sm text-[#f1f1f1]">Show Watermark</span>
-            <button id="togWM" onclick="toggleOpt('wm')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer " style="background:#2e2e2e">
-            </button>
-        </div>
-                <div class="flex items-center justify-between py-2.5 border-b border-[#1c1c1c]">
-            <span class="text-sm text-[#f1f1f1]">Autoplay on Load</span>
-            <button id="togAuto" onclick="toggleOpt('auto')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer" style="background: rgb(46, 46, 46);">
-            </button>
-        </div>
-                <div class="flex items-center justify-between py-2.5 ">
-            <span class="text-sm text-[#f1f1f1]">Loop Video</span>
-            <button id="togLoop" onclick="toggleOpt('loop')" class="toggle-btn relative w-[38px] h-[20px] rounded-full border-none cursor-pointer" style="background: rgb(46, 46, 46);">
-            </button>
-        </div>
+        <div id="bar">
+            <div class="prog-wrap" id="prog">
+                <div class="prog-track">
+                    <div id="prog-buf"></div>
+                    <div id="prog-fill"></div>
+                    <div id="prog-thumb"></div>
+                    <div id="prog-tip">0:00</div>
+                </div>
             </div>
 
-    
-    <div class="w-full max-w-[720px] mt-5" id="debugPanel">
-        <div class="flex items-center justify-between mb-2">
-            <button onclick="toggleDebug()" class="flex items-center gap-2 text-xs text-[#555] hover:text-white transition-colors font-mono">
-                <span id="debugArrow">▼</span>
-                <span>DEBUG PANEL</span>
-                <span id="debugBadge" class="bg-[#1f1f1f] text-[#555] px-2 py-0.5 rounded text-[10px]">118 events</span>
-            </button>
-            <div class="flex gap-2">
-                <button onclick="copyDebugLog()" class="text-[10px] text-[#555] hover:text-white bg-[#1f1f1f] px-2 py-1 rounded font-mono transition-colors">COPY LOG</button>
-                <button onclick="clearDebugLog()" class="text-[10px] text-[#555] hover:text-white bg-[#1f1f1f] px-2 py-1 rounded font-mono transition-colors">CLEAR</button>
-            </div>
-        </div>
+            <div class="row">
+                <button class="ibtn" onclick="togglePlay(event)" title="Play/Pause">
+                    <svg id="play-ico" viewBox="0 0 24 24" fill="currentColor"><path d="M8 5v14l11-7z"/></svg>
+                </button>
 
-        <div id="debugBody" class="bg-[#0a0a0a] border border-[#222] rounded-xl overflow-hidden">
-            
-            <div class="flex flex-wrap gap-3 px-4 py-3 border-b border-[#1a1a1a] text-[11px] font-mono">
-                <span class="text-[#555]">ORIGIN: <span class="text-[#34d399]">http://127.0.0.1:8000</span></span>
-                <span class="text-[#555]">EMBED ROUTE: <span class="text-[#60a5fa]">http://127.0.0.1:8000/killerplayer/embed</span></span>
-                <span class="text-[#555]">YT STATE: <span id="dbgState" class="text-white">⏸ paused</span></span>
-                <span class="text-[#555]">ERRORS: <span id="dbgErrorCount" class="text-[#f87171]">0</span></span>
-            </div>
-            <div class="flex flex-wrap gap-3 px-4 py-2 border-b border-[#1a1a1a] text-[11px] font-mono">
-                <span class="text-[#555]">IFRAME: <span id="dbgIframe" class="text-[#34d399]">loaded ✓</span></span>
-                <span class="text-[#555]">YT READY: <span id="dbgReady" class="text-[#34d399]">ready ✓</span></span>
-                <span class="text-[#555]">VIDEO ID: <span id="dbgVid" class="text-[#fbbf24]">Inmk3zl1qJ8</span></span>
-            </div>
-            <div id="debugLog" class="px-4 py-3 text-[11px] font-mono space-y-1"><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:49</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">KillerPlayer ready</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"origin":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:52</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">player ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">duration: 1:58</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">thumbnail set: maxresdefault</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:53</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:55</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">player ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">duration: 1:58</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">thumbnail set: maxresdefault</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:24:57</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:07</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:07</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:08</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:10</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:25:10</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:18</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:18</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">YT IFrame API ready</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">player ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">duration: 1:58</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YouTube engine ready ✓</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:19</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">thumbnail: maxresdefault</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:20</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:25</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:25</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:26</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:27</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:28</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:28</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:39</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:39</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:41</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:41</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:44</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:44</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:45</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏳ buffering</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:46</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ▶ playing</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:47</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:29:47</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-yt">yt</span>
-            <span class="text-[#ccc] flex-1">state → ⏸ paused</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:23</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:23</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=1&amp;loop=1&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:24</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"1","LOOP":"1","ORIGIN":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:25</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:25</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:36</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=1&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:36</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:37</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:38</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:39</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:33:39</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:11</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:12</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:12</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:16</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:16</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0","ORIGIN":"http://127.0.0.1:8000"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">YT iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:34:17</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:33</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:33</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:34</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:43:35</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:40</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:41</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:42</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:49</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:49</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:50</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:51</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:56</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:57</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:44:58</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:31</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Loading video ID: Inmk3zl1qJ8</span>
-            
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:31</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">Spawning embed iframe</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"url":"http://127.0.0.1:8000/killerplayer/embed?v=Inmk3zl1qJ8&amp;auto=0&amp;loop=0&amp;accent=%23e63946"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:32</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-info">info</span>
-            <span class="text-[#ccc] flex-1">embed loaded</span>
-            <span class="text-[#555] truncate max-w-[180px] text-[10px]">{"VIDEO_ID":"Inmk3zl1qJ8","AUTOPLAY":"0","LOOP":"0"}</span>
-        </div><div class="flex gap-2 items-start leading-relaxed">
-            <span class="text-[#333] flex-shrink-0 w-[60px]">12:45:33</span>
-            <span class="flex-shrink-0 w-[52px] uppercase log-success">success</span>
-            <span class="text-[#ccc] flex-1">embed iframe loaded</span>
-            
-        </div></div>
-            <div class="px-4 py-3 border-t border-[#1a1a1a] text-[11px] font-mono text-[#444] space-y-1">
-                <div class="text-[#555] mb-1">ERROR CODES:</div>
-                <div><span class="text-[#f87171]">2</span> — Invalid videoId</div>
-                <div><span class="text-[#f87171]">100</span> — Video not found or private</div>
-                <div><span class="text-[#f87171]">101/150</span> — Owner disabled embedding</div>
-                <div><span class="text-[#f87171]">152</span> — Origin rejected — check APP_URL in <span class="text-white">.env</span> matches your domain</div>
-                <div><span class="text-[#f87171]">153</span> — Player config error</div>
+                <button class="ibtn" onclick="skip(event,-10)" title="-10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="1 4 1 10 7 10"/>
+                        <path d="M3.51 15a9 9 0 1 0 .49-4.95"/>
+                        <text x="9" y="16" font-size="5.5" fill="currentColor" stroke="none" font-family="system-ui" font-weight="700" text-anchor="middle">10</text>
+                    </svg>
+                </button>
+
+                <button class="ibtn" onclick="skip(event,10)" title="+10s">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <polyline points="23 4 23 10 17 10"/>
+                        <path d="M20.49 15a9 9 0 1 1-.49-4.95"/>
+                        <text x="11.5" y="16" font-size="5.5" fill="currentColor" stroke="none" font-family="system-ui" font-weight="700" text-anchor="middle">10</text>
+                    </svg>
+                </button>
+
+                <span id="time-display">0:00 / 0:00</span>
+
+                <div class="vol-group" onclick="event.stopPropagation()">
+                    <button class="ibtn" onclick="toggleMute(event)" title="Mute">
+                        <svg id="vol-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                            <polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/>
+                            <path id="vol-waves" d="M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14"/>
+                        </svg>
+                    </button>
+                    <input type="range" id="vol-slider" min="0" max="100" value="80"
+                           oninput="setVolume(this.value)" onclick="event.stopPropagation()"/>
+                </div>
+
+                <button class="ibtn" onclick="toggleFullscreen(event)" title="Fullscreen">
+                    <svg id="fs-ico" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M8 3H5a2 2 0 0 0-2 2v3"/>
+                        <path d="M21 8V5a2 2 0 0 0-2-2h-3"/>
+                        <path d="M3 16v3a2 2 0 0 0 2 2h3"/>
+                        <path d="M16 21h3a2 2 0 0 0 2-2v-3"/>
+                    </svg>
+                </button>
             </div>
         </div>
     </div>
+</div>
 
 <script>
-    let innerFrame = null;
-    let videoId    = null;
-    let debugOpen  = false;
-    let logCount   = 0;
-    let errorCount = 0;
-    let opts       = { wm:false, auto:true, loop:false };
-    let curAccent  = '#e63946';
+// ── PHP → JS config ────────────────────────────────────────────────────
+const VIDEO_ID   = @json($videoId);
+const AUTOPLAY   = @json($autoplay);
+const LOOP       = @json($loop);
+const ORIGIN     = '{{ url('/') }}';
+const ACCENT     = new URLSearchParams(location.search).get('accent') || '#e63946';
+document.documentElement.style.setProperty('--accent', ACCENT);
 
-    // ── Debug logger ──
-    function log(level, msg, data) {
-        logCount++;
-        document.getElementById('debugBadge').textContent = logCount + ' events';
-        const colors = { info:'log-info', success:'log-success', error:'log-error', cmd:'log-cmd', yt:'log-yt', warn:'log-warn' };
-        const time   = new Date().toLocaleTimeString('en',{hour12:false});
-        const line   = document.createElement('div');
-        line.className = 'flex gap-2 items-start leading-relaxed';
-        line.innerHTML = `
-            <span class="text-[#333] flex-shrink-0 w-[60px]">${time}</span>
-            <span class="flex-shrink-0 w-[52px] uppercase ${colors[level]||'text-white'}">${level}</span>
-            <span class="text-[#ccc] flex-1">${msg}</span>
-            ${data ? `<span class="text-[#555] truncate max-w-[180px] text-[10px]">${JSON.stringify(data)}</span>` : ''}
-        `;
-        const el = document.getElementById('debugLog');
-        el.appendChild(line);
-        el.scrollTop = el.scrollHeight;
-        if (level === 'error') {
-            errorCount++;
-            document.getElementById('dbgErrorCount').textContent = errorCount;
-            if (!debugOpen) toggleDebug();
+// pause cover behaviour
+// HAS_PAUSE_IMG = true  → custom image already set via inline style in Blade
+// HAS_PAUSE_IMG = false → keep cover transparent (frozen video shows through)
+const HAS_PAUSE_IMG = @json($pauseImg && !empty($pauseVideoImg));
+
+// end screen behaviour
+// HAS_END_SCREEN = true  → show #end-screen div at end
+// HAS_END_SCREEN = false → keep #end-screen transparent; show video + replay btn
+const HAS_END_SCREEN   = @json($endScreen);
+const END_START_SEC    = @json($endScreen ? ($endStartSec ?? 5) : 0);
+const HAS_END_VIDEO    = @json($endScreen && !empty($endScreenVideo));
+
+// ── DOM refs ───────────────────────────────────────────────────────────
+const root       = document.getElementById('root');
+const pauseCover = document.getElementById('pause-cover');
+const endScreen  = document.getElementById('end-screen');
+const endVideo   = document.getElementById('end-video'); // null if no video
+const ytEngine   = document.getElementById('yt-engine');
+
+// ── Debug ──────────────────────────────────────────────────────────────
+function dbg(level, msg, data) {
+    window.parent.postMessage({ _kp_debug:true, level, msg, data:data||null, ts:Date.now() }, '*');
+}
+
+// ── Auto-load best YT thumbnail if NO custom pause image ───────────────
+// When $pauseImg = false the cover is transparent and we don't need a thumb.
+// But we still pre-load one as a fallback for the ended state thumbnail.
+if (!HAS_PAUSE_IMG) {
+    // Cover stays transparent — frozen video frame shows through on pause.
+    pauseCover.style.background = 'transparent';
+}
+
+// ── Build YT iframe src ────────────────────────────────────────────────
+const p = new URLSearchParams({
+    modestbranding:1, showinfo:0, rel:0, controls:0,
+    disablekb:1, iv_load_policy:3, fs:0, cc_load_policy:0,
+    playsinline:1, enablejsapi:1,
+    autoplay: AUTOPLAY, loop: LOOP,
+    origin: ORIGIN, widget_referrer: ORIGIN,
+});
+if (LOOP === '1') p.set('playlist', VIDEO_ID);
+ytEngine.src = `https://www.youtube.com/embed/${VIDEO_ID}?${p}`;
+
+// ── State ──────────────────────────────────────────────────────────────
+let isPlaying = false, isMuted = false, seeking = false;
+let curTime = 0, duration = 0;
+let hideTimer = null, flashTimer = null;
+let endScreenActive = false; // true once end screen is fully triggered
+
+// ── RAF interpolator ───────────────────────────────────────────────────
+let rafId = null;
+let anchor = { t:0, ms:0 };
+
+function rafTick() {
+    if (isPlaying && !seeking && duration > 0) {
+        const t = Math.min(duration, anchor.t + (performance.now() - anchor.ms) / 1000);
+        drawProgress(t);
+    }
+    rafId = requestAnimationFrame(rafTick);
+}
+function startRaf() { if (!rafId) rafId = requestAnimationFrame(rafTick); }
+function stopRaf()  { if (rafId) { cancelAnimationFrame(rafId); rafId = null; } }
+function anchorTime(t) { anchor = { t, ms:performance.now() }; curTime = t; }
+
+// ── End screen helpers ─────────────────────────────────────────────────
+function showEndScreen() {
+    if (endScreenActive) return;
+    endScreenActive = true;
+    dbg('info', 'showEndScreen — HAS_END_SCREEN=' + HAS_END_SCREEN + ' HAS_END_VIDEO=' + HAS_END_VIDEO);
+
+    // Fade the end-screen div in over the playing video
+    endScreen.style.opacity = '1';
+
+    if (HAS_END_VIDEO && endVideo) {
+        dbg('info', 'starting end video, src=' + endVideo.src);
+        endVideo.currentTime = 0;
+        endVideo.loop = false;
+        endVideo.play()
+            .then(() => dbg('success', 'end video is playing'))
+            .catch(err => dbg('error', 'end video play() failed: ' + err.message));
+        endVideo.onended = () => {
+            dbg('info', 'end video finished → resetToInitial');
+            resetToInitial();
+        };
+    } else {
+        // Image end screen — stays for END_START_SEC duration then resets
+        dbg('info', 'end screen image visible, will reset in ' + END_START_SEC + 's');
+        setTimeout(() => { if (endScreenActive) resetToInitial(); }, END_START_SEC * 1000);
+    }
+}
+
+function hideEndScreen() {
+    dbg('info', 'hideEndScreen called');
+    endScreenActive = false;
+    endScreen.style.opacity = '0';
+    if (HAS_END_VIDEO && endVideo) {
+        endVideo.pause();
+        endVideo.currentTime = 0;
+        endVideo.onended = null;
+    }
+}
+
+// Reset player to initial state at position 0 — ready to replay
+function resetToInitial() {
+    dbg('info', 'resetToInitial called');
+    hideEndScreen();
+    ytSend('seekTo', [0, true]);
+    ytSend('stopVideo');
+    isPlaying = false;
+    anchorTime(0);
+    drawProgress(0);
+    centreIco.innerHTML = ICO_PLAY;
+    updatePlayIcon();
+    pauseCover.style.transition = '';
+    pauseCover.style.opacity    = '';
+    setState('initial');
+    dbg('success', 'reset to initial done');
+}
+
+// ── Listening handshake ────────────────────────────────────────────────
+let listenTimer = null;
+function sendListening() {
+    if (ytEngine.contentWindow)
+        ytEngine.contentWindow.postMessage(
+            JSON.stringify({ event:'listening', id:1, channel:'widget' }), '*');
+}
+ytEngine.addEventListener('load', () => {
+    sendListening();
+    listenTimer = setInterval(sendListening, 500);
+});
+
+// ── Icons ──────────────────────────────────────────────────────────────
+const centreIco = document.getElementById('centre-ico');
+const centreBtn = document.getElementById('centre-btn');
+const playIco   = document.getElementById('play-ico');
+const ICO_PLAY  = '<path d="M8 5v14l11-7z"/>';
+const ICO_PAUSE = '<rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/>';
+// Replay icon (circular arrow)
+const ICO_REPLAY = '<path d="M1 4v6h6"/><path d="M3.51 15a9 9 0 1 0 .49-4.95"/>';
+
+function setState(s) { root.className = 'state-' + s; }
+function updatePlayIcon() { playIco.innerHTML = isPlaying ? ICO_PAUSE : ICO_PLAY; }
+
+function flashCentre(icon) {
+    centreIco.innerHTML = icon === 'pause' ? ICO_PAUSE : icon === 'replay' ? ICO_REPLAY : ICO_PLAY;
+    centreBtn.classList.remove('pulse');
+    void centreBtn.offsetWidth;
+    centreBtn.classList.add('pulse');
+    centreBtn.addEventListener('animationend', () => centreBtn.classList.remove('pulse'), { once:true });
+    if (icon === 'pause') {
+        clearTimeout(flashTimer);
+        root.classList.add('centre-flash');
+        flashTimer = setTimeout(() => root.classList.remove('centre-flash'), 700);
+    }
+}
+
+// ── Play / Pause ───────────────────────────────────────────────────────
+function onPlayerClick() { togglePlay(null); }
+function onCentreClick() {
+    // In ended state the centre button is a replay button
+    if (root.classList.contains('state-ended')) { replayVideo(); return; }
+    togglePlay(null);
+}
+
+function togglePlay(e) {
+    if (e) e.stopPropagation();
+    if (isPlaying) {
+        ytSend('pauseVideo');
+        isPlaying = false; setState('paused');
+        flashCentre('play'); updatePlayIcon(); stopRaf();
+    } else {
+        ytSend('playVideo');
+        isPlaying = true; setState('playing');
+        flashCentre('pause'); updatePlayIcon();
+        scheduleHide(); anchorTime(curTime); startRaf();
+    }
+}
+
+function replayVideo() {
+    hideEndScreen();
+    ytSend('seekTo', [0, true]);
+    ytSend('playVideo');
+    isPlaying = true;
+    setState('playing');
+    flashCentre('pause');
+    updatePlayIcon();
+    scheduleHide();
+    anchorTime(0); startRaf();
+    // Restore CSS cover behaviour
+    pauseCover.style.transition = '';
+    pauseCover.style.opacity    = '';
+}
+
+function scheduleHide() { clearTimeout(hideTimer); hideTimer = setTimeout(()=>{}, 2500); }
+
+// ── Skip ──────────────────────────────────────────────────────────────
+function skip(e, sec) {
+    if (e) e.stopPropagation();
+    if (!duration) return;
+    const t = Math.max(0, Math.min(duration, curTime + sec));
+    ytSend('seekTo', [t, true]);
+    anchorTime(t); drawProgress(t);
+}
+
+// ── Volume ────────────────────────────────────────────────────────────
+function toggleMute(e) {
+    if (e) e.stopPropagation();
+    isMuted ? (ytSend('unMute'), isMuted=false) : (ytSend('mute'), isMuted=true);
+    updateVolIcon();
+}
+function setVolume(v) {
+    ytSend('setVolume', [+v]); isMuted = +v===0;
+    isMuted ? ytSend('mute') : ytSend('unMute');
+    updateVolIcon();
+}
+function updateVolIcon() {
+    document.getElementById('vol-waves').setAttribute('d', isMuted
+        ? 'M23 9l-6 6M17 9l6 6'
+        : 'M15.54 8.46a5 5 0 0 1 0 7.07M19.07 4.93a10 10 0 0 1 0 14.14');
+    document.getElementById('vol-ico').style.opacity = isMuted ? '0.45' : '1';
+}
+
+// ── Fullscreen ────────────────────────────────────────────────────────
+function toggleFullscreen(e) {
+    if (e) e.stopPropagation();
+    const el = document.getElementById('root');
+    document.fullscreenElement
+        ? document.exitFullscreen()
+        : (el.requestFullscreen||el.webkitRequestFullscreen).call(el);
+}
+document.addEventListener('fullscreenchange', () => {
+    document.getElementById('fs-ico').innerHTML = document.fullscreenElement
+        ? `<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 0 2 2v3"/><path d="M16 21v-3a2 2 0 0 0-2-2h-3"/>`
+        : `<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>`;
+});
+
+// ── Progress bar ──────────────────────────────────────────────────────
+const progEl   = document.getElementById('prog');
+const progFill = document.getElementById('prog-fill');
+const progThumb= document.getElementById('prog-thumb');
+const timeDisp = document.getElementById('time-display');
+const progBuf  = document.getElementById('prog-buf');
+const progTip  = document.getElementById('prog-tip');
+
+function drawProgress(t) {
+    curTime = t;
+    const pct = duration > 0 ? Math.min(100, (t / duration) * 100) : 0;
+    progFill.style.width = pct + '%';
+    progThumb.style.left = pct + '%';
+    timeDisp.textContent = fmt(t) + ' / ' + fmt(duration);
+}
+function pxToTime(x) {
+    const r = progEl.getBoundingClientRect();
+    return Math.min(1, Math.max(0, (x - r.left) / r.width)) * duration;
+}
+
+progEl.addEventListener('mousedown', e => {
+    if (!duration) return;
+    e.stopPropagation(); seeking = true; drawProgress(pxToTime(e.clientX));
+    const move = ev => { if (seeking) drawProgress(pxToTime(ev.clientX)); };
+    const up   = ev => {
+        seeking = false;
+        const t = pxToTime(ev.clientX);
+        ytSend('seekTo', [t, true]); anchorTime(t); drawProgress(t);
+        document.removeEventListener('mousemove', move);
+        document.removeEventListener('mouseup', up);
+    };
+    document.addEventListener('mousemove', move);
+    document.addEventListener('mouseup', up);
+});
+progEl.addEventListener('mousemove', e => {
+    if (!duration) return;
+    const t = pxToTime(e.clientX);
+    progTip.textContent = fmt(t);
+    progTip.style.left  = ((t/duration)*100) + '%';
+    progTip.style.opacity = '1';
+});
+progEl.addEventListener('mouseleave', () => { progTip.style.opacity = '0'; });
+progEl.addEventListener('touchstart', e => {
+    if (!duration) return;
+    e.preventDefault(); seeking = true; drawProgress(pxToTime(e.touches[0].clientX));
+    const move = ev => { if (seeking) { ev.preventDefault(); drawProgress(pxToTime(ev.touches[0].clientX)); } };
+    const end  = ev => {
+        seeking = false;
+        const t = pxToTime(ev.changedTouches[0].clientX);
+        ytSend('seekTo', [t, true]); anchorTime(t); drawProgress(t);
+        document.removeEventListener('touchmove', move);
+        document.removeEventListener('touchend', end);
+    };
+    document.addEventListener('touchmove', move, { passive:false });
+    document.addEventListener('touchend', end);
+}, { passive:false });
+
+// ── postMessage handler ───────────────────────────────────────────────
+window.addEventListener('message', e => {
+
+    // Commands from outer shell
+    const d = e.data;
+    if (d && typeof d === 'object' && !d._kp_debug && d.cmd) {
+        if (d.cmd === 'play')   { ytSend('playVideo');  isPlaying=true;  setState('playing'); updatePlayIcon(); anchorTime(curTime); startRaf(); }
+        if (d.cmd === 'pause')  { ytSend('pauseVideo'); isPlaying=false; setState('paused');  updatePlayIcon(); stopRaf(); }
+        if (d.cmd === 'mute')   { ytSend('mute');   isMuted=true;  updateVolIcon(); }
+        if (d.cmd === 'unmute') { ytSend('unMute'); isMuted=false; updateVolIcon(); }
+        if (d.cmd === 'volume') { ytSend('setVolume',[+d.value]); document.getElementById('vol-slider').value=d.value; }
+        if (d.cmd === 'seek' && duration > 0) { ytSend('seekTo',[d.value,true]); anchorTime(d.value); drawProgress(d.value); }
+        if (d.cmd === 'accent') { document.documentElement.style.setProperty('--accent', d.value); }
+        return;
+    }
+
+    // YouTube postMessages
+    if (typeof e.data !== 'string') return;
+    if (e.origin !== 'https://www.youtube.com' && e.origin !== 'https://www.youtube-nocookie.com') return;
+
+    let yt;
+    try { yt = JSON.parse(e.data); } catch(_) { return; }
+    if (!yt || !yt.event) return;
+
+    // onReady
+    if (yt.event === 'onReady') {
+        ytSend('setVolume', [80]);
+        if (AUTOPLAY === '1') {
+            ytSend('playVideo');
+            isPlaying = true; setState('playing');
+            flashCentre('pause'); updatePlayIcon();
+            scheduleHide(); anchorTime(0); startRaf();
         }
+        window.parent.postMessage(yt, '*');
     }
 
-    function toggleDebug() {
-        debugOpen = !debugOpen;
-        document.getElementById('debugBody').classList.toggle('hidden', !debugOpen);
-        document.getElementById('debugArrow').textContent = debugOpen ? '▼' : '▶';
-    }
-    function clearDebugLog() {
-        document.getElementById('debugLog').innerHTML = '';
-        logCount = 0; errorCount = 0;
-        document.getElementById('debugBadge').textContent = '0 events';
-        document.getElementById('dbgErrorCount').textContent = '0';
-    }
-    function copyDebugLog() {
-        const lines = [...document.querySelectorAll('#debugLog > div')]
-            .map(l => l.textContent.replace(/\s+/g,' ').trim()).join('\n');
-        navigator.clipboard.writeText(lines).then(() => {
-            event.target.textContent='COPIED!';
-            setTimeout(()=>event.target.textContent='COPY LOG',1500);
-        });
-    }
+    // onStateChange
+    if (yt.event === 'onStateChange') {
+        const s = yt.info;
 
-    // ── Build embed URL — includes accent color so inner player matches theme ──
-    function embedUrl(id) {
-        const p = new URLSearchParams({
-            v:      id,
-            auto:   opts.auto  ? '1':'0',
-            loop:   opts.loop  ? '1':'0',
-            accent: curAccent,
-        });
-        return `http://127.0.0.1:8000/killerplayer/embed?${p}`;
-    }
-
-    function extractId(url) {
-        const m = url.match(/(?:v=|youtu\.be\/|embed\/|shorts\/)([A-Za-z0-9_-]{11})/);
-        return m ? m[1] : (/^[A-Za-z0-9_-]{11}$/.test(url) ? url : null);
-    }
-
-    function loadVideo() {
-        const raw = document.getElementById('ytUrl').value.trim();
-        const id  = extractId(raw);
-        const inp = document.getElementById('ytUrl');
-        if (!id) {
-            inp.classList.add('shake');
-            setTimeout(()=>inp.classList.remove('shake'),400);
-            log('error','Could not extract a valid YouTube video ID',{input:raw});
-            return;
-        }
-        videoId = id;
-        document.getElementById('dbgVid').textContent = id;
-        log('info',`Loading video ID: ${id}`);
-        spawnInner(id);
-    }
-
-    function spawnInner(id) {
-        const slot = document.getElementById('iframeSlot');
-        slot.innerHTML = '';
-
-        const url = embedUrl(id);
-        log('info','Spawning embed iframe',{url});
-
-        innerFrame = document.createElement('iframe');
-        innerFrame.src = url;
-        innerFrame.style.cssText = 'position:absolute;inset:0;width:100%;height:100%;border:none;';
-        innerFrame.allow = 'accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; fullscreen';
-        innerFrame.allowFullscreen = true;
-        innerFrame.setAttribute('referrerpolicy','strict-origin-when-cross-origin');
-        innerFrame.addEventListener('load', () => {
-            document.getElementById('dbgIframe').textContent = 'loaded ✓';
-            document.getElementById('dbgIframe').className   = 'text-[#34d399]';
-            log('success','embed iframe loaded');
-        });
-        slot.appendChild(innerFrame);
-
-        document.getElementById('placeholder').classList.add('opacity-0','pointer-events-none');
-    }
-
-    // ── Receive messages from embed.blade ──
-    window.addEventListener('message', function(e) {
-        let d;
-        try { d = typeof e.data==='string' ? JSON.parse(e.data) : e.data; } catch { return; }
-        if (!d) return;
-
-        // Debug messages from embed.blade
-        if (d._kp_debug) {
-            log(d.level, d.msg, d.data);
-            return;
+        if (s === 1) { // playing
+            // Restore cover CSS control (undo any manual opacity we set)
+            pauseCover.style.transition = '';
+            pauseCover.style.opacity    = '';
+            isPlaying = true; setState('playing'); updatePlayIcon();
+            scheduleHide(); anchorTime(curTime); startRaf();
         }
 
-        // YouTube player events
-        if (d.event === 'onReady') {
-            document.getElementById('dbgReady').textContent = 'ready ✓';
-            document.getElementById('dbgReady').className   = 'text-[#34d399]';
-            log('success','YouTube engine ready ✓');
+        if (s === 2) { // paused
+            isPlaying = false; setState('paused');
+            centreIco.innerHTML = ICO_PLAY; updatePlayIcon(); stopRaf();
         }
-        if (d.event === 'onStateChange') {
-            const labels = {'-1':'unstarted','0':'ended','1':'▶ playing','2':'⏸ paused','3':'⏳ buffering','5':'cued'};
-            document.getElementById('dbgState').textContent = labels[d.info]||d.info;
-            log('yt',`state → ${labels[d.info]||d.info}`);
+
+        if (s === 0) { // YT ended event — near-end logic should have fired already
+            dbg('info', 'YT state=0 fired, endScreenActive=' + endScreenActive + ' LOOP=' + LOOP);
+            stopRaf(); isPlaying = false;
+
+            if (LOOP === '1') {
+                hideEndScreen();
+                ytSend('seekTo', [0, true]);
+                ytSend('playVideo'); isPlaying = true;
+                setState('playing'); scheduleHide();
+                anchorTime(0); startRaf();
+                pauseCover.style.transition = '';
+                pauseCover.style.opacity    = '';
+                return;
+            }
+
+            // Safety net: if near-end logic didn't fire (e.g. very short video)
+            if (!endScreenActive) {
+                dbg('warn', 'state=0 safety net firing');
+                if (HAS_END_SCREEN) {
+                    setState('ended');
+                    centreIco.innerHTML = ICO_REPLAY;
+                    updatePlayIcon();
+                    drawProgress(duration);
+                    showEndScreen();
+                } else {
+                    resetToInitial();
+                }
+            }
         }
-        if (d.event === 'onError') {
-            const errors = {
-                2:'Invalid videoId',100:'Not found/private',
-                101:'Embedding disabled',150:'Embedding disabled',
-                152:'Origin rejected — check APP_URL in .env',153:'Player config error',
-            };
-            log('error',`YouTube Error ${d.data}: ${errors[d.data]||'unknown'}`,{code:d.data});
+
+        if (s === 3) setState('buffering');
+        if (s === -1) {
+            anchorTime(0); drawProgress(0); setState('initial');
+            hideEndScreen();
         }
-    });
 
-    // ── Send command to embed iframe ──
-    function sendInner(obj) {
-        if (innerFrame && innerFrame.contentWindow)
-            innerFrame.contentWindow.postMessage(obj,'*');
+        dbg('yt', 'state→' + s);
+        window.parent.postMessage(yt, '*');
     }
 
-    // ── Theme ──
-    const ALL_THEMES = ['theme-wistia','theme-vimeo','theme-viddler','theme-vzaar','theme-tara'];
-    function setTheme(btn) {
-        ALL_THEMES.forEach(t => document.body.classList.remove(t));
-        document.querySelectorAll('.theme-btn').forEach(b => b.classList.remove('active'));
-        document.body.classList.add(btn.dataset.theme);
-        btn.classList.add('active');
-        setAccent(btn.dataset.color);
-        document.getElementById('colorPick').value = btn.dataset.color;
+    // onError
+    if (yt.event === 'onError') {
+        const errs = {2:'Invalid videoId',100:'Not found',101:'Embed disabled',150:'Embed disabled',152:'Origin rejected',153:'Config error'};
+        dbg('error', `YT error ${yt.data}: ${errs[yt.data]||'unknown'}`);
+        window.parent.postMessage(yt, '*');
     }
 
-    function setAccent(c) {
-        curAccent = c;
-        document.documentElement.style.setProperty('--accent', c);
-        // Push accent into the live embed iframe so progress bar color updates
-        sendInner({ cmd:'accent', value:c });
-        // If video is loaded, respawn with new accent
-        // (only needed for full re-render — postMessage handles live update above)
-    }
+    // infoDelivery — real-time currentTime + duration from YT
+    if (yt.event === 'infoDelivery' && yt.info) {
+        const info = yt.info;
 
-    function updateWM(t) {
-        document.getElementById('watermark').textContent = t || 'MY BRAND';
-    }
+        if (listenTimer) { clearInterval(listenTimer); listenTimer = null; }
 
-    function toggleOpt(key) {
-        opts[key] = !opts[key];
-        const ids = { wm:'togWM', auto:'togAuto', loop:'togLoop' };
-        const btn = document.getElementById(ids[key]);
-        btn.classList.toggle('on', opts[key]);
-        btn.style.background = opts[key] ? 'var(--accent)' : '#2e2e2e';
-        if (key === 'wm') {
-            document.getElementById('watermark').classList.toggle('opacity-0',  !opts[key]);
-            document.getElementById('watermark').classList.toggle('opacity-100', opts[key]);
+        if (info.duration != null && info.duration > 0) duration = info.duration;
+
+        if (info.currentTime != null && !seeking) {
+            anchorTime(info.currentTime);
+            if (!isPlaying) drawProgress(info.currentTime);
+
+            // ── Near-end logic (two triggers) ──────────────────
+            if (duration > 0 && isPlaying && !seeking) {
+                const remaining = duration - info.currentTime;
+
+                // TRIGGER 1: endStartSec before end → show end screen OVER main video
+                // Main video keeps playing underneath while end screen fades in on top.
+                if (HAS_END_SCREEN && END_START_SEC > 0
+                    && remaining <= END_START_SEC && remaining > 1
+                    && !endScreenActive) {
+                    dbg('info', 'END_START_SEC trigger: remaining=' + remaining.toFixed(2) + ' endStartSec=' + END_START_SEC);
+                    showEndScreen(); // fades in over still-playing video
+                }
+
+                // TRIGGER 2: 1 second before end → stop main video so YT
+                // suggestion cards NEVER appear. End screen is already showing.
+                if (remaining <= 1 && remaining > 0) {
+                    dbg('info', 'STOP trigger: remaining=' + remaining.toFixed(2) + ' stopping YT');
+                    ytSend('stopVideo');
+                    isPlaying = false;
+                    stopRaf();
+                    drawProgress(duration);
+                    setState('ended');
+                    centreIco.innerHTML = ICO_REPLAY;
+                    updatePlayIcon();
+                    // If end screen wasn't triggered yet (short video / endStartSec=0)
+                    if (!endScreenActive && HAS_END_SCREEN) {
+                        dbg('info', 'late end screen trigger');
+                        showEndScreen();
+                    }
+                    if (!HAS_END_SCREEN) {
+                        dbg('info', 'no end screen — resetting to initial');
+                        resetToInitial();
+                    }
+                }
+            }
         }
-        if ((key==='auto'||key==='loop') && videoId) spawnInner(videoId);
+
+        if (info.videoLoadedFraction != null) {
+            progBuf.style.width = (info.videoLoadedFraction * 100) + '%';
+        }
+
+        window.parent.postMessage(yt, '*');
     }
+});
 
-    document.getElementById('ytUrl').addEventListener('keydown', e => {
-        if (e.key==='Enter') loadVideo();
-    });
+// ── Send command to YT ────────────────────────────────────────────────
+function ytSend(func, args) {
+    if (ytEngine && ytEngine.contentWindow) {
+        ytEngine.contentWindow.postMessage(
+            JSON.stringify({ event:'command', func, args:args||[], id:1, channel:'widget' }), '*');
+    }
+}
 
-    log('info','KillerPlayer ready',{origin:'http://127.0.0.1:8000'});
+// ── Format m:ss ───────────────────────────────────────────────────────
+function fmt(s) {
+    s = Math.floor(s||0);
+    return Math.floor(s/60) + ':' + String(s%60).padStart(2,'0');
+}
 </script>
-
-<veepn-lock-screen><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-lock-screen><veepn-intro-offer><style>@font-face{font-family:FigtreeVF;src:url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2 supports variations"),url(chrome-extension://majdfhpaihoncoakbjgbdhglocklcgno/fonts/FigtreeVF.woff2) format("woff2-variations");font-weight:100 1000;font-display:swap}</style></veepn-intro-offer></body>
+</body>
+</html>
