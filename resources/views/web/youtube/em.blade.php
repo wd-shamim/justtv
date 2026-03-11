@@ -139,12 +139,22 @@
             opacity:0; transform:translateY(4px); pointer-events:none;
             transition:opacity .3s ease, transform .3s ease;
         }
-        /* Show when: hovering, paused, initial, ended, or controls-visible class */
+        /* Normal (non-fullscreen): show on hover or non-playing states */
         #player:hover #bar,
-        #root.controls-visible #bar,
         #root.state-paused  #bar,
         #root.state-initial #bar,
         #root.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
+
+        /* Fullscreen playing: ONLY show when controls-visible (mouse moved recently) */
+        #root.fs-playing #player:hover #bar { opacity:0; transform:translateY(4px); pointer-events:none; }
+        #root.fs-playing.controls-visible #bar,
+        #root.fs-playing.state-paused  #bar,
+        #root.fs-playing.state-initial #bar,
+        #root.fs-playing.state-ended   #bar { opacity:1; transform:translateY(0); pointer-events:auto; }
+
+        /* Hide cursor in fullscreen when controls are hidden */
+        #root.fs-playing:not(.controls-visible) { cursor:none; }
+        #root.fs-playing:not(.controls-visible) #click-area { cursor:none; }
 
         /* ── Progress ── */
         .prog-wrap { width:100%; height:20px; display:flex; align-items:center;
@@ -400,6 +410,10 @@ function anchorTime(t) { anchor = { t, ms:performance.now() }; curTime = t; }
 // It is shown when remaining <= END_START_SEC and hidden when
 // user seeks back before that window. Can toggle multiple times.
 
+// endScreenTimer: fires resetToInitial() 2s after main video stops (STOP trigger).
+// Cleared if user hides end screen by seeking back.
+let endScreenTimer = null;
+
 function showEndScreen() {
     if (endScreenActive) return;
     endScreenActive = true;
@@ -412,25 +426,48 @@ function showEndScreen() {
         endVideo.play()
             .then(() => dbg('success', 'end video playing'))
             .catch(err => dbg('error', 'end video failed: ' + err.message));
-        // onended only fires at the true end of the end-screen video (state=0 path)
-        endVideo.onended = () => { dbg('info', 'end video done → resetToInitial'); resetToInitial(); };
+        // Don't rely on onended — the video may be longer than END_START_SEC.
+        // resetToInitial is scheduled by scheduleEndReset() at STOP trigger instead.
     } else {
-        // Image end screen — auto-reset after END_START_SEC
-        dbg('info', 'end screen image, reset in ' + END_START_SEC + 's');
-        setTimeout(() => { if (endScreenActive) resetToInitial(); }, END_START_SEC * 1000);
+        // Image end screen — schedule reset after END_START_SEC
+        dbg('info', 'end screen image, scheduling reset in ' + END_START_SEC + 's');
+        scheduleEndReset(END_START_SEC * 1000);
+    }
+}
+
+// Called at the STOP trigger (1s before main video ends).
+// Resets 2s later — giving the end screen a moment to be seen.
+function scheduleEndReset(ms) {
+    clearTimeout(endScreenTimer);
+    endScreenTimer = setTimeout(() => {
+        dbg('info', 'endScreenTimer fired → resetToInitial');
+        if (endScreenActive) resetToInitial();
+    }, ms != null ? ms : 2000);
+}
+
+function pauseEndVideo() {
+    if (HAS_END_VIDEO && endVideo && !endVideo.paused) {
+        endVideo.pause();
+        dbg('info', 'end video paused');
+    }
+}
+function resumeEndVideo() {
+    if (HAS_END_VIDEO && endVideo && endVideo.paused && endScreenActive) {
+        endVideo.play().catch(() => {});
+        dbg('info', 'end video resumed');
     }
 }
 
 function hideEndScreen() {
     if (!endScreenActive) return;
     endScreenActive = false;
+    clearTimeout(endScreenTimer);
     endScreen.style.transition = 'opacity 0.4s ease';
     endScreen.style.opacity    = '0';
     dbg('info', 'hideEndScreen — main video resumes underneath');
     if (HAS_END_VIDEO && endVideo) {
         endVideo.pause();
         endVideo.currentTime = 0;
-        endVideo.onended = null;
     }
 }
 
@@ -488,25 +525,44 @@ function flashCentre(icon) {
     }
 }
 
-// ── Fullscreen cursor auto-hide ────────────────────────────────────────
-// When fullscreen + playing: hide controls after 3s of no cursor movement.
-// Any mouse move restores them immediately.
-function onMouseMove() {
-    if (!document.fullscreenElement || !isPlaying) return;
-    root.classList.add('controls-visible');
-    clearTimeout(cursorTimer);
-    cursorTimer = setTimeout(() => {
-        if (isPlaying) root.classList.remove('controls-visible');
-    }, 3000);
-}
-document.addEventListener('mousemove', onMouseMove);
-document.addEventListener('fullscreenchange', () => {
-    if (!document.fullscreenElement) {
-        // Exiting fullscreen — always show controls
+// ── Fullscreen cursor + controls auto-hide ────────────────────────────
+// In fullscreen while playing: hide controls + cursor after 3s idle.
+// Any mouse move / click wakes them up again.
+// Uses class "fs-playing" on root to activate the suppression CSS rules.
+
+function updateFsClass() {
+    if (document.fullscreenElement && isPlaying) {
+        root.classList.add('fs-playing');
+    } else {
+        root.classList.remove('fs-playing');
         root.classList.remove('controls-visible');
         clearTimeout(cursorTimer);
     }
-    // Update fullscreen icon
+}
+
+function wakeControls() {
+    if (!document.fullscreenElement) return;
+    root.classList.add('controls-visible');
+    clearTimeout(cursorTimer);
+    // Hide again after 3s if still playing
+    cursorTimer = setTimeout(() => {
+        if (isPlaying && document.fullscreenElement) {
+            root.classList.remove('controls-visible');
+        }
+    }, 3000);
+}
+
+document.addEventListener('mousemove',  wakeControls);
+document.addEventListener('mousedown',  wakeControls);
+document.addEventListener('touchstart', wakeControls, { passive:true });
+
+document.addEventListener('fullscreenchange', () => {
+    updateFsClass();
+    if (document.fullscreenElement) {
+        // Just entered fullscreen — show controls briefly then hide
+        wakeControls();
+    }
+    // Update icon
     document.getElementById('fs-ico').innerHTML = document.fullscreenElement
         ? `<path d="M8 3v3a2 2 0 0 1-2 2H3"/><path d="M21 8h-3a2 2 0 0 1-2-2V3"/><path d="M3 16h3a2 2 0 0 0 2 2v3"/><path d="M16 21v-3a2 2 0 0 0-2-2h-3"/>`
         : `<path d="M8 3H5a2 2 0 0 0-2 2v3"/><path d="M21 8V5a2 2 0 0 0-2-2h-3"/><path d="M3 16v3a2 2 0 0 0 2 2h3"/><path d="M16 21h3a2 2 0 0 0 2-2v-3"/>`;
@@ -592,11 +648,15 @@ function togglePlay(e) {
         ytSend('pauseVideo');
         isPlaying = false; setState('paused');
         flashCentre('play'); updatePlayIcon(); stopRaf();
+        pauseEndVideo();
+        updateFsClass();
     } else {
         ytSend('playVideo');
         isPlaying = true; setState('playing');
         flashCentre('pause'); updatePlayIcon();
         anchorTime(curTime); startRaf();
+        resumeEndVideo();
+        updateFsClass();
     }
 }
 function replayVideo() {
@@ -735,10 +795,12 @@ window.addEventListener('message', e => {
             thumbnail.style.transition = ''; thumbnail.style.opacity = '';
             isPlaying = true; setState('playing'); updatePlayIcon();
             anchorTime(curTime); startRaf();
+            resumeEndVideo();
         }
         if (s === 2) {
             isPlaying = false; setState('paused');
             centreIco.innerHTML = ICO_PLAY; updatePlayIcon(); stopRaf();
+            pauseEndVideo();
         }
         if (s === 0) {
             dbg('info', 'YT state=0, endScreenActive=' + endScreenActive);
@@ -802,8 +864,13 @@ window.addEventListener('message', e => {
                     setState('ended');
                     centreIco.innerHTML = ICO_REPLAY;
                     updatePlayIcon();
-                    if (!endScreenActive && HAS_END_SCREEN) showEndScreen();
-                    if (!HAS_END_SCREEN) resetToInitial();
+                    if (HAS_END_SCREEN) {
+                        if (!endScreenActive) showEndScreen();
+                        // Schedule reset 2s after end (regardless of end video length)
+                        scheduleEndReset(2000);
+                    } else {
+                        resetToInitial();
+                    }
                 }
             }
         }
