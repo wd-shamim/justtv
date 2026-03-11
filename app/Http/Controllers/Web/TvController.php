@@ -30,7 +30,7 @@ class TvController extends Controller
                 Log::error('Channel Fetch Failed', ['status' => $response->status()]);
                 return [];
             });
-            
+            // dd($channels); // DEBUGGING: Check the structure of channels before passing to view
             // No more dd() here, just pass data to view
             return view('web.all_channels', compact('channels'));
                 
@@ -58,8 +58,6 @@ class TvController extends Controller
         // DEBUGGING: Log if no items found
         if ($items->length === 0) {
              Log::warning('Parser found 0 items. HTML structure might have changed or content is empty.');
-             // You can temporarily log the HTML to see what was actually returned:
-             // Log::debug('Received HTML:', ['html' => $html]); 
         }
 
         foreach ($items as $item) {

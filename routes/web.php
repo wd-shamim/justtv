@@ -22,10 +22,11 @@ Route::controller(TvController::class)->group(function () {
     Route::get('/allchannel', 'allchannel')->name('allchannel');
 });
 
-Route::middleware(['web'])->group(function () {
-    Route::controller(DaddyController::class)->group(function () {
-        Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
-    });
+Route::controller(DaddyController::class)->group(function () {
+    // Main View Route
+    Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
+    
+    // Proxy Route (Must match the controller method name)
+    Route::get('/stream/proxy/{channelId}', 'proxyStream')->name('stream.proxy');
 });
-
 require __DIR__.'/auth.php';

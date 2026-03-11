@@ -4,6 +4,7 @@ namespace App\Http\Controllers\Web;
 
 use App\Http\Controllers\Controller;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Http;
 
 class DaddyController extends Controller
 {
@@ -14,38 +15,87 @@ class DaddyController extends Controller
         }
 
         $channelName = $this->getChannelName($channelId);
-        $embedContent = $this->generateIframe($channelId);
 
         return view('web.view_live', [
             'channelName' => $channelName,
-            'channelId' => $channelId,
-            'embedContent' => $embedContent
+            'channelId' => $channelId
         ]);
     }
 
-    private function generateIframe($channelId)
+    public function proxyStream($channelId)
     {
-        // Security: Sanitize the ID just in case, though the route check helps
         $safeId = htmlspecialchars($channelId, ENT_QUOTES, 'UTF-8');
+        
+        // Sources to try
+        $sources = [
+            "https://dlstreams.top/embed/stream-{$safeId}.php",
+            "https://widestream.io/embed/stream-{$safeId}.php",
+        ];
 
-        // We return a clean HTML string.
-        // 1. The Shield has an onclick to unmute the video.
-        // 2. We do NOT add 'sandbox' attributes here, as they often block video playback from external providers.
-        return '
-        <div class="iframe-container" id="video-wrapper">
-            <!-- The Video Iframe -->
-            <iframe 
-                src="https://dlstreams.top/embed/stream-'.$safeId.'.php"
-                id="stream-player"
-                frameborder="0"
-                allowfullscreen
-                scrolling="no"
-                allow="autoplay; encrypted-media; fullscreen; picture-in-picture">
-            </iframe>
+        // Rotate User Agents to bypass simple bot detection
+        $userAgents = [
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
+            'Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:121.0) Gecko/20100101 Firefox/121.0'
+        ];
 
-            <!-- Click Shield: Blocks Ad Clicks AND triggers unmute on click -->
-            <div class="click-shield" id="click-shield" onclick="tryUnmutePlayer()" style="cursor:pointer;"></div>
-        </div>';
+        $html = null;
+        $effectiveUrl = null;
+
+        foreach ($sources as $url) {
+            try {
+                $response = Http::timeout(10)
+                    ->withHeaders([
+                        'User-Agent' => $userAgents[array_rand($userAgents)],
+                        'Accept' => 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+                        'Accept-Language' => 'en-US,en;q=0.5',
+                        'Referer' => 'https://www.google.com/'
+                    ])
+                    ->get($url);
+
+                if ($response->successful()) {
+                    $content = $response->body();
+                    
+                    // Check for nested iframe
+                    if (preg_match('/<iframe[^>]+src="(https?:\/\/[^"]*daddyhd\.php[^"]*)"/i', $content, $matches)) {
+                        $nestedUrl = $matches[1];
+                        
+                        $nestedResponse = Http::timeout(10)
+                            ->withHeaders([
+                                'User-Agent' => $userAgents[array_rand($userAgents)],
+                                'Referer' => $url 
+                            ])
+                            ->get($nestedUrl);
+
+                        if ($nestedResponse->successful()) {
+                            $html = $nestedResponse->body();
+                            $effectiveUrl = $nestedUrl;
+                            break;
+                        }
+                    } else {
+                        // No nested iframe, use main content
+                        $html = $content;
+                        $effectiveUrl = $url;
+                        break;
+                    }
+                }
+            } catch (\Exception $e) {
+                // Log error if needed: \Log::error($e->getMessage());
+                continue;
+            }
+        }
+
+        // If no HTML fetched, return a valid HTML error page (Not 404 header)
+        if (!$html) {
+            return response('<!DOCTYPE html><html><body style="background:#000;color:white;text-align:center;padding-top:20vh;"><h1>Stream Offline</h1><p>Server cannot connect to source. Try refreshing.</p></body></html>', 200);
+        }
+
+        // Minimal Cleaning (Remove Link tags that cause connection errors)
+        $html = preg_replace('/<link[^>]*?>/i', '', $html);
+
+        return response($html)
+            ->header('Content-Type', 'text/html; charset=utf-8')
+            ->header('Cache-Control', 'no-store, no-cache');
     }
 
     private function getChannelName($channelId)
@@ -54,9 +104,6 @@ class DaddyController extends Controller
             '51' => 'ABC USA',
             '95' => 'Example Channel',
         ];
-        
-        // Security: Ensure the name is safe to output
-        $name = $channelMap[$channelId] ?? "Channel {$channelId}";
-        return htmlspecialchars($name, ENT_QUOTES, 'UTF-8');
+        return $channelMap[$channelId] ?? "Channel {$channelId}";
     }
 }

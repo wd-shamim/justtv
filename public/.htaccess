@@ -27,3 +27,10 @@
     RewriteCond %{HTTP_REFERER} madurird\.com [NC]
     RewriteRule \.(jpg|jpeg|png|gif|css|js|webp|svg|ico)$ - [F,L]
 </IfModule>
+<IfModule mod_headers.c>
+    <FilesMatch "\.(php)$">
+        Header set Cache-Control "no-store, no-cache, must-revalidate, max-age=0"
+        Header set Pragma "no-cache"
+        Header set Expires "Sat, 26 Jul 1997 05:00:00 GMT"
+    </FilesMatch>
+</IfModule>
