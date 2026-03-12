@@ -1,0 +1,835 @@
+<!DOCTYPE html>
+<html lang="nl">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Koelapparatuur – HorecaGemak.nl | Professionele Keukenapparatuur</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;1,9..40,300&display=swap" rel="stylesheet" />
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            heading: ['Syne', 'sans-serif'],
+            body: ['DM Sans', 'sans-serif'],
+          },
+          colors: {
+            brand: {
+              50: '#f0f4ff',
+              100: '#dde6ff',
+              200: '#c2d0ff',
+              300: '#9cb0ff',
+              400: '#7485ff',
+              500: '#4f5bff',
+              600: '#1C2B6E',
+              700: '#1a2660',
+              800: '#161f50',
+              900: '#0f1538',
+            },
+            accent: {
+              DEFAULT: '#E8441A',
+              light: '#FF6B45',
+              dark: '#C23510',
+            },
+            neutral: {
+              50: '#F9F9FA',
+              100: '#F2F2F4',
+              200: '#E5E5E8',
+              300: '#D0D0D5',
+              400: '#9898A3',
+              500: '#6B6B78',
+              600: '#4A4A55',
+              700: '#2E2E38',
+              800: '#1C1C24',
+              900: '#0E0E14',
+            }
+          },
+          boxShadow: {
+            'card': '0 2px 16px 0 rgba(14,14,20,0.07)',
+            'card-hover': '0 8px 40px 0 rgba(28,43,110,0.15)',
+            'filter': '0 1px 8px 0 rgba(14,14,20,0.06)',
+          }
+        }
+      }
+    }
+  </script>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: 'DM Sans', sans-serif; background: #F9F9FA; }
+    h1,h2,h3,h4,h5,h6,.font-heading { font-family: 'Syne', sans-serif; }
+
+    /* Product card hover */
+    .product-card { transition: box-shadow 0.25s ease, transform 0.25s ease; }
+    .product-card:hover { box-shadow: 0 12px 40px 0 rgba(28,43,110,0.16); transform: translateY(-4px); }
+    .product-card:hover .card-actions { opacity: 1; transform: translateY(0); }
+    .card-actions { opacity: 0; transform: translateY(8px); transition: opacity 0.2s ease, transform 0.2s ease; }
+    .product-card:hover .product-img { transform: scale(1.05); }
+    .product-img { transition: transform 0.4s ease; }
+
+    /* Entrance Animations */
+    .fade-up { opacity: 0; transform: translateY(20px); animation: fadeUp 0.6s ease forwards; }
+    @keyframes fadeUp { to { opacity: 1; transform: translateY(0); } }
+
+    /* Filter accordion */
+    .filter-section { border-bottom: 1px solid #E5E5E8; }
+    .filter-content { display: grid; grid-template-rows: 0fr; transition: grid-template-rows 0.3s ease; }
+    .filter-content.open { grid-template-rows: 1fr; }
+    .filter-content > div { overflow: hidden; }
+    .filter-toggle svg { transition: transform 0.2s ease; }
+    .filter-toggle.open svg { transform: rotate(180deg); }
+
+    /* Range slider */
+    input[type=range] { -webkit-appearance: none; appearance: none; height: 4px; background: #E5E5E8; border-radius: 2px; outline: none; }
+    input[type=range]::-webkit-slider-thumb { -webkit-appearance: none; appearance: none; width: 18px; height: 18px; border-radius: 50%; background: #1C2B6E; cursor: pointer; border: 2px solid white; box-shadow: 0 1px 6px rgba(28,43,110,0.3); }
+
+    /* Checkbox custom */
+    .custom-check { width: 18px; height: 18px; border: 1.5px solid #D0D0D5; border-radius: 4px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; transition: background 0.15s, border-color 0.15s; cursor: pointer; }
+    .custom-check.checked { background: #1C2B6E; border-color: #1C2B6E; }
+
+    /* Mobile filter overlay */
+    .filter-overlay { transition: opacity 0.25s ease; }
+
+    /* Breadcrumb separator */
+    .breadcrumb-sep::before { content: '/'; margin: 0 8px; color: #9898A3; }
+
+    /* Sort dropdown */
+    .sort-dropdown { position: relative; }
+    .sort-menu { display: none; position: absolute; top: calc(100% + 6px); right: 0; z-index: 50; min-width: 220px; }
+    .sort-menu.open { display: block; }
+
+    /* Pagination */
+    .page-btn { transition: background 0.15s, color 0.15s, border-color 0.15s; }
+
+    /* Scrollbar thin */
+    .thin-scroll::-webkit-scrollbar { width: 4px; }
+    .thin-scroll::-webkit-scrollbar-track { background: transparent; }
+    .thin-scroll::-webkit-scrollbar-thumb { background: #D0D0D5; border-radius: 2px; }
+
+    /* Tag chip */
+    .filter-chip { transition: background 0.15s, border-color 0.15s; }
+    .filter-chip:hover { background: #dde6ff; border-color: #9cb0ff; }
+
+    @media (max-width: 1024px) {
+      .desktop-filter { display: none; }
+      .mobile-filter-btn { display: flex; }
+    }
+    @media (min-width: 1025px) {
+      .mobile-filter-btn { display: none; }
+      .filter-overlay-wrap { display: none !important; }
+    }
+  </style>
+</head>
+<body class="text-neutral-800 bg-neutral-50">
+
+<!-- ═══════════════════════════════════════════════════════════
+     HEADER / NAVIGATION
+═══════════════════════════════════════════════════════════ -->
+<header class="bg-white border-b border-neutral-200 sticky top-0 z-40">
+  <!-- Top utility bar -->
+  <div class="bg-brand-600 text-white text-xs py-2">
+    <div class="max-w-[1440px] mx-auto px-4 lg:px-8 flex justify-between items-center">
+      <span class="hidden sm:block">Gratis verzending vanaf €199 | Bezorging binnen 2–3 werkdagen</span>
+      <span class="sm:hidden">Gratis verzending vanaf €199</span>
+      <div class="flex items-center gap-4">
+        <span class="hidden md:inline">085 – 760 02 55</span>
+        <span>Mijn account</span>
+      </div>
+    </div>
+  </div>
+  <!-- Main nav -->
+  <div class="max-w-[1440px] mx-auto px-4 lg:px-8">
+    <div class="flex items-center h-16 gap-6">
+      <!-- Logo -->
+      <a href="#" class="flex items-center gap-2 flex-shrink-0">
+        <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+        </div>
+        <span class="font-heading font-700 text-brand-600 text-xl tracking-tight">horeca<span class="text-accent">gemak</span></span>
+      </a>
+
+      <!-- Search bar -->
+      <div class="flex-1 max-w-xl hidden md:block">
+        <div class="relative">
+          <input type="text" placeholder="Zoek producten, merken of categorieën…" class="w-full h-10 pl-4 pr-12 rounded-lg border border-neutral-200 bg-neutral-50 text-sm focus:outline-none focus:ring-2 focus:ring-brand-600/20 focus:border-brand-400 font-body" />
+          <button class="absolute right-0 top-0 h-10 w-11 flex items-center justify-center bg-brand-600 rounded-r-lg text-white hover:bg-brand-700 transition-colors">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- Nav icons -->
+      <div class="flex items-center gap-2 ml-auto md:ml-0">
+        <button class="md:hidden w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 text-neutral-600">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        </button>
+        <button class="hidden sm:flex w-10 h-10 items-center justify-center rounded-lg hover:bg-neutral-100 text-neutral-600 relative">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+        </button>
+        <button class="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-neutral-100 text-neutral-600 relative">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+          <span class="absolute -top-1 -right-1 w-5 h-5 bg-accent text-white text-xs font-heading font-700 rounded-full flex items-center justify-center">3</span>
+        </button>
+      </div>
+    </div>
+
+    <!-- Category nav -->
+    <nav class="hidden lg:flex items-center gap-1 border-t border-neutral-100 h-11 overflow-x-auto">
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Koelapparatuur</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-brand-600 border-b-2 border-brand-600 whitespace-nowrap">Vrieskisten & Koelkasten</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Ovens & Fornuizen</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Frituurapparatuur</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Snijmachines</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">RVS Meubelen</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Bardienst</a>
+      <a href="#" class="px-3 py-2 text-sm font-body font-500 text-neutral-600 hover:text-brand-600 whitespace-nowrap rounded transition-colors">Servies & Bestek</a>
+    </nav>
+  </div>
+</header>
+
+<!-- ═══════════════════════════════════════════════════════════
+     BREADCRUMB + PAGE HEADER
+═══════════════════════════════════════════════════════════ -->
+<div class="bg-white border-b border-neutral-200">
+  <div class="max-w-[1440px] mx-auto px-4 lg:px-8 py-4">
+    <!-- Breadcrumb -->
+    <nav class="flex items-center text-xs text-neutral-500 font-body mb-3">
+      <a href="#" class="hover:text-brand-600 transition-colors">Home</a>
+      <span class="breadcrumb-sep"></span>
+      <a href="#" class="hover:text-brand-600 transition-colors">Koelapparatuur</a>
+      <span class="breadcrumb-sep"></span>
+      <span class="text-neutral-700 font-500">Koelkasten & Vrieskisten</span>
+    </nav>
+    <div class="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-2">
+      <div>
+        <h1 class="font-heading font-800 text-2xl lg:text-3xl text-neutral-900 leading-tight">Koelkasten & Vrieskisten</h1>
+        <p class="text-sm text-neutral-500 mt-1 font-body">Professionele koelapparatuur voor restaurants, snackbars & grootkeukens</p>
+      </div>
+      <span class="text-sm text-neutral-500 font-body shrink-0" id="productCountHeader"> Laden...</span>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MAIN CONTENT AREA
+═══════════════════════════════════════════════════════════ -->
+<div class="max-w-[1440px] mx-auto px-4 lg:px-8 py-6">
+  <div class="flex gap-7">
+
+    <!-- ══════════════════════════════
+         FILTER SIDEBAR – Desktop
+    ══════════════════════════════ -->
+    <aside class="desktop-filter w-64 flex-shrink-0 self-start sticky top-[120px]">
+      <div class="bg-white rounded-2xl shadow-filter overflow-hidden">
+        <div class="px-5 py-4 border-b border-neutral-100 flex items-center justify-between">
+          <span class="font-heading font-700 text-sm text-neutral-900 uppercase tracking-widest">Filters</span>
+          <button class="text-xs text-accent hover:underline font-body font-500" onclick="resetFilters()">Wissen</button>
+        </div>
+
+        <!-- Active filters -->
+        <div id="activeFilters" class="px-4 py-3 border-b border-neutral-100 hidden flex-wrap gap-2">
+          <!-- Filled by JS -->
+        </div>
+
+        <div class="thin-scroll overflow-y-auto max-h-[calc(100vh-280px)]">
+
+          <!-- Price Range -->
+          <div class="filter-section">
+            <button class="filter-toggle open w-full flex items-center justify-between px-5 py-4" onclick="toggleFilter(this)">
+              <span class="font-heading font-600 text-sm text-neutral-800">Prijs</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-content open">
+              <div class="px-5 pb-5">
+                <div class="flex items-center justify-between mb-3">
+                  <span class="text-xs font-body text-neutral-500">€<span id="minVal">200</span></span>
+                  <span class="text-xs font-body text-neutral-500">€<span id="maxVal">5000</span></span>
+                </div>
+                <input type="range" min="0" max="5000" value="200" class="w-full mb-2" oninput="document.getElementById('minVal').textContent=this.value" />
+                <input type="range" min="0" max="5000" value="5000" class="w-full" oninput="document.getElementById('maxVal').textContent=this.value" />
+              </div>
+            </div>
+          </div>
+
+          <!-- Brand -->
+          <div class="filter-section">
+            <button class="filter-toggle open w-full flex items-center justify-between px-5 py-4" onclick="toggleFilter(this)">
+              <span class="font-heading font-600 text-sm text-neutral-800">Merk</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-content open">
+              <div class="px-5 pb-4">
+                <div id="brandFilters" class="space-y-2.5">
+                  <!-- Filled by JS -->
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Availability -->
+          <div class="filter-section">
+            <button class="filter-toggle open w-full flex items-center justify-between px-5 py-4" onclick="toggleFilter(this)">
+              <span class="font-heading font-600 text-sm text-neutral-800">Beschikbaarheid</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-content open">
+              <div class="px-5 pb-4 space-y-2.5">
+                <label class="flex items-center gap-3 cursor-pointer group">
+                  <div class="custom-check" onclick="this.classList.toggle('checked')">
+                    <svg class="hidden" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <span class="text-sm font-body text-neutral-700 group-hover:text-brand-600 transition-colors flex-1">Op voorraad</span>
+                </label>
+              </div>
+            </div>
+          </div>
+
+          <!-- Energy class -->
+          <div class="filter-section border-b-0">
+            <button class="filter-toggle w-full flex items-center justify-between px-5 py-4" onclick="toggleFilter(this)">
+              <span class="font-heading font-600 text-sm text-neutral-800">Energieklasse</span>
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6B6B78" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+            </button>
+            <div class="filter-content">
+              <div class="px-5 pb-5 flex flex-wrap gap-2">
+                <button class="px-3 py-1.5 text-xs font-body font-600 bg-green-100 text-green-700 rounded-lg border border-green-200 hover:bg-green-200 transition-colors">A+</button>
+                <button class="px-3 py-1.5 text-xs font-body font-600 bg-green-50 text-green-600 rounded-lg border border-green-200 hover:bg-green-100 transition-colors">A</button>
+                <button class="px-3 py-1.5 text-xs font-body font-600 bg-yellow-50 text-yellow-700 rounded-lg border border-yellow-200 hover:bg-yellow-100 transition-colors">B</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Apply filters CTA -->
+        <div class="px-5 py-4 border-t border-neutral-100">
+          <button class="w-full h-10 bg-brand-600 hover:bg-brand-700 text-white text-sm font-heading font-600 rounded-xl transition-colors">
+            Filters toepassen
+          </button>
+        </div>
+      </div>
+    </aside>
+
+    <!-- ══════════════════════════════
+         MAIN PRODUCT GRID AREA
+    ══════════════════════════════ -->
+    <main class="flex-1 min-w-0">
+
+      <!-- Toolbar: sort + view + mobile filter -->
+      <div class="flex flex-wrap items-center gap-3 mb-5">
+        <!-- Mobile filter button -->
+        <button class="mobile-filter-btn items-center gap-2 h-10 px-4 bg-white border border-neutral-200 rounded-xl text-sm font-body font-500 text-neutral-700 hover:border-brand-300 transition-colors shadow-filter" onclick="document.getElementById('mobileFilterOverlay').classList.toggle('hidden')">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="4" y1="6" x2="20" y2="6"/><line x1="8" y1="12" x2="16" y2="12"/><line x1="11" y1="18" x2="13" y2="18"/></svg>
+          Filters
+        </button>
+
+        <!-- Sort dropdown -->
+        <div class="sort-dropdown">
+          <button class="flex items-center gap-2 h-10 px-4 bg-white border border-neutral-200 rounded-xl text-sm font-body font-500 text-neutral-700 hover:border-brand-300 transition-colors shadow-filter" onclick="document.getElementById('sortMenu').classList.toggle('open')">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+            Sorteren: Populairste
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          <div id="sortMenu" class="sort-menu bg-white rounded-xl border border-neutral-200 shadow-card overflow-hidden">
+            <button class="w-full px-4 py-2.5 text-sm font-body text-left text-brand-600 font-500 bg-brand-50 hover:bg-brand-100 transition-colors flex items-center gap-2">
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+              Populairste
+            </button>
+            <button class="w-full px-4 py-2.5 text-sm font-body text-left text-neutral-700 hover:bg-neutral-50 transition-colors pl-10">Prijs: laag naar hoog</button>
+            <button class="w-full px-4 py-2.5 text-sm font-body text-left text-neutral-700 hover:bg-neutral-50 transition-colors pl-10">Prijs: hoog naar laag</button>
+            <button class="w-full px-4 py-2.5 text-sm font-body text-left text-neutral-700 hover:bg-neutral-50 transition-colors pl-10">Nieuwste eerst</button>
+          </div>
+        </div>
+
+        <span class="text-sm text-neutral-500 font-body ml-auto hidden sm:block" id="productCountToolbar">Laden...</span>
+
+        <!-- View toggle -->
+        <div class="hidden sm:flex items-center gap-1 bg-white border border-neutral-200 rounded-xl p-1 shadow-filter">
+          <button class="w-8 h-8 flex items-center justify-center rounded-lg bg-brand-600 text-white" id="gridViewBtn" onclick="setView('grid')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/></svg>
+          </button>
+          <button class="w-8 h-8 flex items-center justify-center rounded-lg text-neutral-500 hover:bg-neutral-100 transition-colors" id="listViewBtn" onclick="setView('list')">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/><line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2 "3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- ═════ PRODUCT GRID ═════ -->
+      <div id="productGrid" class="grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-5">
+        <!-- Products injected by JS -->
+      </div>
+
+      <!-- ═════ PAGINATION ═════ -->
+      <div class="mt-10 flex items-center justify-between">
+        <p class="text-sm text-neutral-500 font-body hidden sm:block">Pagina 1 van 3</p>
+        <div class="flex items-center gap-1.5 mx-auto sm:mx-0">
+          <button class="page-btn w-10 h-10 flex items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-400 cursor-not-allowed shadow-filter" disabled>
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="15 18 9 12 15 6"/></svg>
+          </button>
+          <button class="page-btn w-10 h-10 flex items-center justify-center rounded-xl bg-brand-600 text-white font-heading font-700 text-sm shadow-sm">1</button>
+          <button class="page-btn w-10 h-10 flex items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 font-heading font-500 text-sm hover:bg-brand-50 hover:border-brand-300 hover:text-brand-600 shadow-filter">2</button>
+          <button class="page-btn w-10 h-10 flex items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 font-heading font-500 text-sm hover:bg-brand-50 hover:border-brand-300 hover:text-brand-600 shadow-filter">3</button>
+          <button class="page-btn w-10 h-10 flex items-center justify-center rounded-xl border border-neutral-200 bg-white text-neutral-700 hover:bg-brand-50 hover:border-brand-300 hover:text-brand-600 shadow-filter">
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="9 18 15 12 9 6"/></svg>
+          </button>
+        </div>
+      </div>
+
+      <!-- B2B trust bar -->
+      <div class="mt-10 grid grid-cols-2 md:grid-cols-4 gap-4">
+        <div class="bg-white rounded-2xl p-4 shadow-filter flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C2B6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="1" y="3" width="15" height="13"/><polygon points="16 8 20 8 23 11 23 16 16 16 16 8"/><circle cx="5.5" cy="18.5" r="2.5"/><circle cx="18.5" cy="18.5" r="2.5"/></svg>
+          </div>
+          <div>
+            <p class="font-heading font-600 text-xs text-neutral-900">Gratis verzending</p>
+            <p class="text-xs font-body text-neutral-400">Vanaf € 199,</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-filter flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C2B6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          </div>
+          <div>
+            <p class="font-heading font-600 text-xs text-neutral-900">2 jaar garantie</p>
+            <p class="text-xs font-body text-neutral-400">Op alle producten</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-filter flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C2B6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9 22 9 12 15 12 15 22"/></svg>
+          </div>
+          <div>
+            <p class="font-heading font-600 text-xs text-neutral-900">30 dagen retour</p>
+            <p class="text-xs font-body text-neutral-400">Zonder gedoe</p>
+          </div>
+        </div>
+        <div class="bg-white rounded-2xl p-4 shadow-filter flex items-center gap-3">
+          <div class="w-10 h-10 rounded-xl bg-brand-50 flex items-center justify-center flex-shrink-0">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#1C2B6E" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07A19.5 19.5 0 0 1 4.69 15.1a19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 3.6 4.27h3a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 11.9c1.56 2.73 3.86 5.02 6.59 6.59l.99-.99a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+          </div>
+          <div>
+            <p class="font-heading font-600 text-xs text-neutral-900">Expert advies</p>
+            <p class="text-xs font-body text-neutral-400">085 – 760 02 55</p>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     MOBILE FILTER OVERLAY
+═══════════════════════════════════════════════════════════ -->
+<div id="mobileFilterOverlay" class="filter-overlay-wrap hidden fixed inset-0 z-50">
+  <div class="absolute inset-0 bg-black/40 backdrop-blur-sm" onclick="document.getElementById('mobileFilterOverlay').classList.add('hidden')"></div>
+  <div class="absolute right-0 top-0 bottom-0 w-80 bg-white shadow-2xl flex flex-col">
+    <div class="flex items-center justify-between px-5 py-4 border-b border-neutral-100">
+      <span class="font-heading font-700 text-base text-neutral-900">Filters</span>
+      <button onclick="document.getElementById('mobileFilterOverlay').classList.add('hidden')" class="w-8 h-8 flex items-center justify-center rounded-lg hover:bg-neutral-100 text-neutral-500">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+      </button>
+    </div>
+    <div class="flex-1 overflow-y-auto thin-scroll p-5 text-sm text-neutral-600 font-body">
+      <p class="text-neutral-800 font-heading font-600 mb-4">Merk</p>
+      <div id="mobileBrandFilters" class="space-y-2.5 mb-6">
+        <!-- Injected by JS -->
+      </div>
+    </div>
+    <div class="px-5 py-4 border-t border-neutral-100">
+      <button onclick="document.getElementById('mobileFilterOverlay').classList.add('hidden')" class="w-full h-11 bg-brand-600 hover:bg-brand-700 text-white text-sm font-heading font-600 rounded-xl transition-colors">Filters toepassen</button>
+    </div>
+  </div>
+</div>
+
+<!-- ═══════════════════════════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════════════════════════ -->
+<footer class="bg-neutral-900 text-white mt-16">
+  <div class="max-w-[1440px] mx-auto px-4 lg:px-8 py-12">
+    <div class="grid grid-cols-2 md:grid-cols-4 gap-8 mb-10">
+      <div class="col-span-2 md:col-span-1">
+        <div class="flex items-center gap-2 mb-4">
+          <div class="w-8 h-8 bg-brand-600 rounded-lg flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none"><path d="M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+          </div>
+          <span class="font-heading font-700 text-xl">horeca<span class="text-accent">gemak</span></span>
+        </div>
+        <p class="text-sm text-neutral-400 font-body leading-relaxed">Professionele keukenapparatuur voor de horeca. Al 15 jaar dé partner voor restaurants, cafés en grootkeukens.</p>
+      </div>
+      <div>
+        <h4 class="font-heading font-600 text-sm mb-4 uppercase tracking-widest text-neutral-300">Categorieën</h4>
+        <ul class="space-y-2 text-sm font-body text-neutral-400">
+          <li><a href="#" class="hover:text-white transition-colors">Koelapparatuur</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Ovens & Fornuizen</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Frituurapparatuur</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Bardienst</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-heading font-600 text-sm mb-4 uppercase tracking-widest text-neutral-300">Service</h4>
+        <ul class="space-y-2 text-sm font-body text-neutral-400">
+          <li><a href="#" class="hover:text-white transition-colors">Klantenservice</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Retourneren</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Garantie</a></li>
+          <li><a href="#" class="hover:text-white transition-colors">Zakelijke klanten</a></li>
+        </ul>
+      </div>
+      <div>
+        <h4 class="font-heading font-600 text-sm mb-4 uppercase tracking-widest text-neutral-300">Contact</h4>
+        <ul class="space-y-2 text-sm font-body text-neutral-400">
+          <li>085 – 760 02 55</li>
+          <li>info@horecagemak.nl</li>
+          <li class="pt-1">Ma–Vr: 08:30 – 17:30</li>
+        </ul>
+      </div>
+    </div>
+    <div class="border-t border-neutral-800 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
+      <p class="text-xs font-body text-neutral-500">© 2025 HorecaGemak.nl — Alle rechten voorbehouden</p>
+      <div class="flex items-center gap-3">
+        <span class="text-xs font-body text-neutral-500 px-2 py-1 border border-neutral-700 rounded">iDEAL</span>
+        <span class="text-xs font-body text-neutral-500 px-2 py-1 border border-neutral-700 rounded">Factuur</span>
+      </div>
+    </div>
+  </div>
+</footer>
+
+<!-- ══ JavaScript ══ -->
+<script>
+  // === DATA: Products sourced from HorecaGemak structure ===
+  const products = [
+    {
+      id: 1,
+      brand: "Gram",
+      name: "PLUS K 600 L DR Professionele Koelkast",
+      price: 1489,
+      oldPrice: 1699,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.2,
+      reviews: 24,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=600&q=80"
+    },
+    {
+      id: 2,
+      brand: "Polar Refrigeration",
+      name: "G-Series Horizontale Vrieskist 200L",
+      price: 719,
+      oldPrice: 849,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 5.0,
+      reviews: 18,
+      badge: "sale",
+      discount: "-15%",
+      image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=600&q=80"
+    },
+    {
+      id: 3,
+      brand: "Liebherr",
+      name: "FKv 4143 Premium Displaykoelkast",
+      price: 2149,
+      oldPrice: null,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.8,
+      reviews: 9,
+      badge: "new",
+      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80"
+    },
+    {
+      id: 4,
+      brand: "True Manufacturing",
+      name: "TWT-27F Onderbouw Werkbankvries",
+      price: 3290,
+      oldPrice: null,
+      inStock: false,
+      delivery: "Levertijd 5–7 werkdagen",
+      rating: 4.5,
+      reviews: 41,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1588957710490-42434f0f6c07?w=600&q=80"
+    },
+    {
+      id: 5,
+      brand: "Combisteel",
+      name: "Saladette 4× GN1/4 Koelwerkbank",
+      price: 1189,
+      oldPrice: null,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 3.9,
+      reviews: 7,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=600&q=80"
+    },
+    {
+      id: 6,
+      brand: "Forcar",
+      name: "Pizzakoeling met Graniet Werkblad 150cm",
+      price: 1971,
+      oldPrice: 2190,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.6,
+      reviews: 13,
+      badge: "sale",
+      discount: "-10%",
+      image: "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=600&q=80"
+    },
+    {
+      id: 7,
+      brand: "Gram",
+      name: "Mini Koelkast 85 Liter Met Glasdeur",
+      price: 449,
+      oldPrice: null,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.0,
+      reviews: 12,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=600&q=80"
+    },
+    {
+      id: 8,
+      brand: "Polar Refrigeration",
+      name: "Wandkoelkast 600L Dubbele Deur",
+      price: 1249,
+      oldPrice: 1399,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.4,
+      reviews: 32,
+      badge: "sale",
+      discount: "-11%",
+      image: "https://images.unsplash.com/photo-1556909114-f6e7ad7d3136?w=600&q=80"
+    },
+    {
+      id: 9,
+      brand: "Liebherr",
+      name: "Vrieskist GTS 2763 Standaard",
+      price: 989,
+      oldPrice: null,
+      inStock: false,
+      delivery: "Levertijd 5–7 werkdagen",
+      rating: 4.7,
+      reviews: 8,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1588957710490-42434f0f6c07?w=600&q=80"
+    },
+    {
+      id: 10,
+      brand: "Combisteel",
+      name: "Inbouw Koelkast 140cm RVS Deur",
+      price: 759,
+      oldPrice: null,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.1,
+      reviews: 15,
+      badge: null,
+      image: "https://images.unsplash.com/photo-1567521464027-f127ff144326?w=600&q=80"
+    },
+    {
+      id: 11,
+      brand: "True Manufacturing",
+      name: "T-23F Reach-In Freezer",
+      price: 4150,
+      oldPrice: 4500,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 5.0,
+      reviews: 22,
+      badge: "sale",
+      discount: "-8%",
+      image: "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=600&q=80"
+    },
+    {
+      id: 12,
+      brand: "Forcar",
+      name: "Gnor Inbouw Koellade 400mm",
+      price: 425,
+      oldPrice: null,
+      inStock: true,
+      delivery: "Voor 17:00 besteld, morgen in huis",
+      rating: 4.3,
+      reviews: 5,
+      badge: "new",
+      image: "https://images.unsplash.com/photo-1571175443880-49e1d25b2bc5?w=600&q=80"
+    }
+  ];
+
+  // === INITIALIZATION ===
+  document.addEventListener('DOMContentLoaded', () => {
+    renderProducts();
+    renderBrandFilters();
+    updateProductCounts();
+  });
+
+  // === RENDER PRODUCTS ===
+  function renderProducts() {
+    const grid = document.getElementById('productGrid');
+    grid.innerHTML = ''; // Clear existing
+
+    products.forEach((product, index) => {
+      const card = document.createElement('article');
+      card.className = 'product-card bg-white rounded-2xl shadow-card overflow-hidden flex flex-col group fade-up';
+      card.style.animationDelay = `${index * 50}ms`;
+      
+      // Badge Logic
+      let badgeHtml = '';
+      if (product.badge === 'sale' && product.discount) {
+        badgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-accent text-white text-xs font-heading font-600 rounded-full">${product.discount}</span>`;
+      } else if (product.badge === 'new') {
+        badgeHtml = `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-brand-600 text-white text-xs font-heading font-600 rounded-full">Nieuw</span>`;
+      }
+
+      const stockBadge = product.inStock 
+        ? `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-emerald-500 text-white text-xs font-heading font-600 rounded-full"><span class="w-1.5 h-1.5 bg-white rounded-full"></span> Op voorraad</span>`
+        : `<span class="inline-flex items-center gap-1 px-2 py-0.5 bg-neutral-500 text-white text-xs font-heading font-600 rounded-full">Bestelling</span>`;
+
+      const priceHtml = product.oldPrice 
+        ? `<p class="text-xs font-body text-neutral-400 line-through">€ ${product.oldPrice.toLocaleString('nl-NL')},–</p><p class="font-heading font-700 text-xl text-neutral-900">€ ${product.price.toLocaleString('nl-NL')},–</p>`
+        : `<p class="font-heading font-700 text-xl text-neutral-900">€ ${product.price.toLocaleString('nl-NL')},–</p>`;
+
+      const deliveryIcon = product.inStock 
+        ? `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#10b981" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>`
+        : `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#6B6B78" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>`;
+
+      const deliveryTextClass = product.inStock ? 'text-emerald-600' : 'text-neutral-500';
+
+      // Stars Logic (simplified)
+      let starsHtml = '';
+      const fullStars = Math.floor(product.rating);
+      for(let i=0; i<5; i++) {
+        const color = i < fullStars ? '#f59e0b' : '#D0D0D5';
+        starsHtml += `<svg width="11" height="11" viewBox="0 0 24 24" fill="${color}"><polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/></svg>`;
+      }
+
+      card.innerHTML = `
+        <div class="relative overflow-hidden bg-neutral-50" style="aspect-ratio:4/3;">
+          <img src="${product.image}" alt="${product.name}" class="product-img w-full h-full object-cover p-4" />
+          <div class="absolute top-3 left-3 flex flex-col gap-1.5">
+            ${badgeHtml}
+            ${stockBadge}
+          </div>
+          <button class="absolute top-3 right-3 w-8 h-8 bg-white/90 backdrop-blur-sm rounded-full flex items-center justify-center text-neutral-400 hover:text-accent transition-colors shadow-sm opacity-0 group-hover:opacity-100 transition-opacity">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20.84 4.61a5.5 5.5 0 0 0-7.78 0L12 5.67l-1.06-1.06a5.5 5.5 0 0 0-7.78 7.78l1.06 1.06L12 21.23l7.78-7.78 1.06-1.06a5.5 5.5 0 0 0 0-7.78z"/></svg>
+          </button>
+          <div class="card-actions absolute bottom-0 left-0 right-0 p-3">
+            <button class="w-full h-9 bg-brand-600/95 backdrop-blur-sm hover:bg-brand-700 text-white text-sm font-heading font-600 rounded-xl transition-colors flex items-center justify-center gap-2">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+              In winkelwagen
+            </button>
+          </div>
+        </div>
+        <div class="p-4 flex flex-col flex-1">
+          <p class="text-xs font-body text-neutral-400 mb-1">${product.brand}</p>
+          <h3 class="font-heading font-600 text-sm lg:text-base text-neutral-900 leading-snug mb-3 flex-1">${product.name}</h3>
+          <div class="flex items-center gap-2 mb-3">
+            <div class="flex gap-0.5">${starsHtml}</div>
+            <span class="text-xs font-body text-neutral-400">(${product.reviews})</span>
+          </div>
+          <div class="flex items-end justify-between mt-auto">
+            <div>
+              ${priceHtml}
+              <p class="text-xs font-body text-neutral-500 mt-0.5">excl. btw</p>
+            </div>
+            <button class="lg:hidden w-9 h-9 bg-brand-600 hover:bg-brand-700 text-white rounded-xl flex items-center justify-center transition-colors">
+              <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z"/><line x1="3" y1="6" x2="21" y2="6"/><path d="M16 10a4 4 0 0 1-8 0"/></svg>
+            </button>
+          </div>
+          <div class="mt-3 flex items-center gap-1.5">
+            ${deliveryIcon}
+            <span class="text-xs font-body ${deliveryTextClass} font-500">${product.delivery}</span>
+          </div>
+        </div>
+      `;
+
+      grid.appendChild(card);
+    });
+  }
+
+  // === RENDER DYNAMIC FILTERS (Brands) ===
+  function renderBrandFilters() {
+    const brands = [...new Set(products.map(p => p.brand))];
+    const brandContainer = document.getElementById('brandFilters');
+    const mobileBrandContainer = document.getElementById('mobileBrandFilters');
+    
+    let html = '';
+    brands.forEach(brand => {
+      const count = products.filter(p => p.brand === brand).length;
+      html += `
+        <label class="flex items-center gap-3 cursor-pointer group">
+          <div class="custom-check" onclick="this.classList.toggle('checked')">
+            <svg class="hidden" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"/></svg>
+          </div>
+          <span class="text-sm font-body text-neutral-700 group-hover:text-brand-600 transition-colors flex-1">${brand}</span>
+          <span class="text-xs font-body text-neutral-400">${count}</span>
+        </label>
+      `;
+    });
+
+    brandContainer.innerHTML = html;
+    mobileBrandContainer.innerHTML = html;
+  }
+
+  // === HELPERS ===
+  function updateProductCounts() {
+    const count = products.length;
+    document.getElementById('productCountHeader').textContent = `${count} producten`;
+    document.getElementById('productCountToolbar').textContent = `1–${count} van ${count} producten`;
+  }
+
+  function toggleFilter(btn) {
+    const content = btn.nextElementSibling;
+    const isOpen = content.classList.contains('open');
+    content.classList.toggle('open', !isOpen);
+    btn.classList.toggle('open', !isOpen);
+  }
+
+  // Sort menu close on outside click
+  document.addEventListener('click', function(e) {
+    const menu = document.getElementById('sortMenu');
+    if (!e.target.closest('.sort-dropdown')) {
+      menu.classList.remove('open');
+    }
+  });
+
+  // View toggle grid/list
+  function setView(mode) {
+    const grid = document.getElementById('productGrid');
+    const gridBtn = document.getElementById('gridViewBtn');
+    const listBtn = document.getElementById('listViewBtn');
+    
+    if (mode === 'list') {
+      grid.className = 'flex flex-col gap-4';
+      grid.querySelectorAll('article').forEach(c => {
+        c.classList.remove('flex-col');
+        c.classList.add('flex-row', 'h-48');
+        c.querySelector('.relative').classList.add('w-1/3', 'h-full');
+        c.querySelector('.p-4').classList.add('w-2/3');
+      });
+      listBtn.classList.add('bg-brand-600', 'text-white');
+      listBtn.classList.remove('text-neutral-500');
+      gridBtn.classList.remove('bg-brand-600', 'text-white');
+      gridBtn.classList.add('text-neutral-500');
+    } else {
+      grid.className = 'grid grid-cols-2 lg:grid-cols-3 xl:grid-cols-3 gap-4 lg:gap-5';
+      grid.querySelectorAll('article').forEach(c => {
+        c.classList.add('flex-col');
+        c.classList.remove('flex-row', 'h-48');
+        c.querySelector('.relative').classList.remove('w-1/3', 'h-full');
+        c.querySelector('.p-4').classList.remove('w-2/3');
+      });
+      gridBtn.classList.add('bg-brand-600', 'text-white');
+      gridBtn.classList.remove('text-neutral-500');
+      listBtn.classList.remove('bg-brand-600', 'text-white');
+      listBtn.classList.add('text-neutral-500');
+    }
+  }
+</script>
+</body>
+</html>

@@ -1,53 +1,48 @@
 <?php
- 
- namespace App\Http\Controllers\Web;
- 
- use App\Http\Controllers\Controller;
- use Illuminate\Support\Facades\Http;
- use Illuminate\Support\Facades\Cache;
- 
- class DaddyController extends Controller
- {
-     public function viewlive($channelId)
-     {
-         if (!is_numeric($channelId)) {
-             abort(400, 'Invalid channel ID');
-         }
- 
-         $channelName = $this->getChannelName($channelId);
-         $embedContent = $this->generateCleanIframe($channelId);
- 
-         return view('web.view_live', [
-             'channelName' => $channelName,
-             'channelId' => $channelId,
-             'embedContent' => $embedContent
-         ]);
-     }
- 
-     private function generateCleanIframe($channelId)
-     {
-         // Direct iframe generation without sandbox
-         return '<div class="embed-responsive embed-responsive-16by9">
-             <iframe 
-                 src="https://thedaddy.to/embed/stream-'.$channelId.'.php"
-                 id="stream-player"
-                 class="embed-responsive-item"
-                 width="100%"
-                 height="500"
-                 frameborder="0"
-                 allowfullscreen
-                 scrolling="no"
-                 allow="autoplay; encrypted-media">
-             </iframe>
-         </div>';
-     }
- 
-     private function getChannelName($channelId)
-     {
-         $channelMap = [
-             '51' => 'ABC USA',
-             '95' => 'Example Channel',
-         ];
-         return $channelMap[$channelId] ?? "Channel {$channelId}";
-     }
- }
+
+namespace App\Http\Controllers\Web;
+
+use App\Http\Controllers\Controller;
+use Illuminate\Http\Request;
+
+class DaddyController extends Controller
+{
+    private array $channelMap = [
+        '51'  => 'ABC USA',
+        '95'  => 'Example Channel',
+    ];
+
+    public function viewlive($channelId)
+    {
+        if (!is_numeric($channelId)) {
+            abort(400, 'Invalid channel ID');
+        }
+
+        $channelName = $this->channelMap[$channelId] ?? "Channel {$channelId}";
+
+        return view('web.dad.killerplayer', compact('channelName', 'channelId'));
+    }
+
+    public function embed(Request $request)
+    {
+        $channelId   = 51;
+        $channelName = $request->query('name', $channelId ? "Channel {$channelId}" : 'Live TV');
+
+        // ── Branding ──────────────────────────────────────────────
+        // true  → bottom-right overlay visible only during playback.
+        $branding       = true;
+        $branding_color = '#f4a015';
+        $brandingName   = 'Bego Star';
+        $brandingLogo   = 'https://threeva.com/web/images/threeva_logo.svg';
+
+        // ── Thumbnail / Poster ────────────────────────────────────
+        // Shown before the stream loads. null = black.
+        $thumbnail_url = null;
+
+        return view('web.dad.em', compact(
+            'channelId', 'channelName',
+            'thumbnail_url',
+            'branding', 'branding_color', 'brandingName', 'brandingLogo'
+        ));
+    }
+}

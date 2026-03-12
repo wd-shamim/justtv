@@ -24,15 +24,21 @@ Route::controller(TvController::class)->group(function () {
     Route::get('/allchannel', 'allchannel')->name('allchannel');
 });
 
-Route::middleware(['web'])->group(function () {
+Route::middleware(['web' ])->group(function () {
     Route::controller(DaddyController::class)->group(function () {
         Route::get('/view-live/{channelId}', 'viewlive')->name('viewlive');
+        Route::get('/killerplayer/tv', 'embed')->name('killerplayer.tv.embed')->middleware('adblock');
     });
 });
 
+Route::get('/proxy/stream/{id}', [StreamProxyController::class, 'stream'])->name('proxy.stream')->where('id', '[0-9]+');
+Route::get('/proxy/res', [StreamProxyController::class, 'resource'])->name('proxy.resource');
+
+// Debug tool — remove in production
+Route::get('/proxy/debug/{id}', [StreamProxyController::class, 'debug'])->where('id', '[0-9]+');
+    
+
 require __DIR__.'/auth.php';
-
-
 
 
 Route::controller(YoutubeController::class)->group(function () {

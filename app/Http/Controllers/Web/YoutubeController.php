@@ -14,37 +14,6 @@ class YoutubeController extends Controller
     {
         return view('web.youtube.killerplayer');
     }
-
-    /**
-     * Inner embed — wraps YouTube with the full custom KillerPlayer.
-     *
-     * Variables passed to Blade:
-     * ──────────────────────────────────────────────────────────────
-     * $videoId        string   YouTube video ID
-     * $autoplay       string   '0' | '1'
-     * $loop           string   '0' | '1'
-     *
-     * $thumbnail_url  string|null   Custom thumbnail shown on initial load.
-     *                               null → auto-load best YouTube thumbnail.
-     *
-     * $pauseImg       bool          Show a custom image when paused?
-     * $pauseVideoImg  string|null   URL of custom pause image.
-     *                               null/false → show frozen video frame on pause.
-     *                               NOTE: pauseVideoImg and thumbnail_url are
-     *                               independent — thumbnail is the initial poster,
-     *                               pauseVideoImg replaces the frame while paused.
-     *
-     * $endScreen      bool          Show custom end screen before video ends?
-     * $endStartSec    int           Seconds before end to start showing end screen.
-     * $endScreenVideo string|null   MP4 URL (first priority over image).
-     * $endScreenImg   string|null   Fallback image URL.
-     *                               false/$endScreen=false → reset to initial at 1s.
-     *
-     * $branding       bool          Show branding overlay during playback?
-     * $branding_color string        CSS color for branding text (e.g. '#f4a015').
-     * $brandingName   string        Brand name text.
-     * $brandingLogo   string|null   Logo image URL (shown alongside name).
-     */
     public function embed(Request $request)
     {
         $videoId  = $request->query('v',    '');
@@ -79,7 +48,7 @@ class YoutubeController extends Controller
         // false → nothing shown.
         $branding       = true;
         $branding_color = '#f4a015';
-        $brandingName   = 'Bego Star';
+        $brandingName   = '';
         $brandingLogo   = 'https://threeva.com/web/images/threeva_logo.svg';
 
         return view('web.youtube.em', compact(
